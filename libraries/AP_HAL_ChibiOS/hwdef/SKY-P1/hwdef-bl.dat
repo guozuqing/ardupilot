@@ -1,0 +1,155 @@
+# 硬件定义文件（hw definition file）
+# 用于通过 chibios_hwdef.py 处理
+# 针对 SULILGH7_P1 硬件的配置
+
+# -------------------
+# MCU 配置
+# -------------------
+# MCU 类别和具体型号
+MCU STM32H7xx STM32H743xx
+
+# 晶振频率（单位：Hz）
+OSCILLATOR_HZ 16000000
+
+# 固件加载所需的板卡 ID
+APJ_BOARD_ID 9999
+
+# -------------------
+# 引导加载程序配置
+# -------------------
+# 引导加载程序安装在 Flash 的零偏移处
+FLASH_RESERVE_START_KB 0
+
+# 引导加载程序放置固件的起始位置（单位：KB）
+FLASH_BOOTLOADER_LOAD_KB 128
+
+# Flash 总容量（单位：KB）
+FLASH_SIZE_KB 2048
+
+# -------------------
+# ChibiOS 系统定时器
+# -------------------
+# 使用的定时器编号
+STM32_ST_USE_TIMER 2
+
+# 编译优化选项
+env OPTIMIZE -Os
+
+# -------------------
+# 串口和 USB 配置
+# -------------------
+# 串口与 USB 顺序
+SERIAL_ORDER OTG1 UART7 USART2 USART3
+
+# USB 接口定义
+PA11 OTG_FS_DM OTG1
+PA12 OTG_FS_DP OTG1
+PA9  VBUS INPUT OPENDRAIN
+
+# -------------------
+# 调试接口
+# -------------------
+# SWD 调试接口引脚
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# -------------------
+# 芯片选择引脚（CS）
+# -------------------
+PI9  ICM20689_CS       CS
+PH5  BMP_581_CS        CS
+PI4  BMI088_A_CS       CS
+PI8  BMI088_G_CS       CS
+PH15 ICM_42688_CS      CS
+PG7  FRAM_CS           CS
+PC2  EXT1_CS           CS
+PC3  EXT2_CS           CS
+
+# -------------------
+# 调试接口 UART
+# -------------------
+PE8 UART7_TX UART7
+PE7 UART7_RX UART7
+
+# -------------------
+# 通信接口（TELEM）
+# -------------------
+# TELEM1 配置
+PD5 USART2_TX USART2
+PA3 USART2_RX USART2
+PD4 USART2_RTS USART2
+PD3 USART2_CTS USART2
+
+# TELEM2 配置
+PD8 USART3_TX USART3
+PD9 USART3_RX USART3
+PD12 USART3_RTS USART3
+PD11 USART3_CTS USART3
+
+# -------------------
+# 电源管理
+# -------------------
+# 外设电源启动引脚
+PE9   nVDD_5V_HIPOWER_EN OUTPUT LOW
+PE10  nVDD_5V_PERIPH_EN  OUTPUT LOW
+
+# 电源状态感知引脚
+PA15 VDD_5V_PERIPH_nOC INPUT PULLUP
+PD2  VDD_5V_HIPOWER_nOC INPUT PULLUP
+
+# -------------------
+# 指示灯配置
+# -------------------
+# LED 定义
+PE3 LED_RED        OUTPUT OPENDRAIN HIGH  # 红色 LED
+PE4 LED_ACTIVITY   OUTPUT OPENDRAIN HIGH  # 蓝色 LED
+PE5 LED_BOOTLOADER OUTPUT OPENDRAIN HIGH  # 绿色 LED
+
+# 定义 LED 点亮的逻辑
+define HAL_LED_ON 0
+
+# -------------------
+# 存储相关配置
+# -------------------
+# 定义存储空间大小（单位：字节）
+#define HAL_USE_EMPTY_STORAGE 1
+define HAL_STORAGE_SIZE 16384
+
+# 启用 DFU 默认引导
+ENABLE_DFU_BOOT 1
+
+# -------------------
+# SD 卡支持
+# -------------------
+# SD 卡供电引脚
+PG3  VDD_3V3_SD_CARD_EN OUTPUT HIGH
+PG6  VDD_3V3_IMU_EN     OUTPUT HIGH
+
+# FATFS 支持相关配置
+define CH_CFG_USE_MEMCORE 1
+define CH_CFG_USE_HEAP 1
+define CH_CFG_USE_SEMAPHORES 0
+define CH_CFG_USE_MUTEXES 1
+define CH_CFG_USE_DYNAMIC 1
+define CH_CFG_USE_WAITEXIT 1
+define CH_CFG_USE_REGISTRY 1
+
+# microSD 支持
+PD6  SDMMC2_CK   SDMMC2
+PD7  SDMMC2_CMD  SDMMC2
+PB14 SDMMC2_D0   SDMMC2
+PB15 SDMMC2_D1   SDMMC2
+PG11 SDMMC2_D2   SDMMC2
+PB4  SDMMC2_D3   SDMMC2
+define FATFS_HAL_DEVICE SDCD2
+
+# -------------------
+# DMA 优先级配置
+# -------------------
+DMA_PRIORITY SDMMC* USART6* ADC* UART* USART* SPI* TIM*
+
+# 启用 FAT 文件系统支持
+define HAL_OS_FATFS_IO 1
+
+# 支持从 SD 卡刷写固件
+define AP_BOOTLOADER_FLASH_FROM_SD_ENABLED 1
