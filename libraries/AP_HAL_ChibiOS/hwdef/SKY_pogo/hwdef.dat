@@ -1,18 +1,17 @@
 # MCU class and specific type
 MCU STM32F4xx STM32F412Rx  # MCU类和特定类型
 
-# default to all pins low to avoid ESD issues
-DEFAULTGPIO OUTPUT LOW PULLDOWN  # 默认所有引脚设置为低电平，避免静电问题
+
 
 # bootloader starts firmware at 64k
-FLASH_RESERVE_START_KB 64  # 引导加载程序从64K开始固件
+FLASH_RESERVE_START_KB 68  # 引导加载程序从64K开始固件
 
 # store parameters in pages 2 and 3
 STORAGE_FLASH_PAGE 2  # 存储参数在第2和第3页
 define HAL_STORAGE_SIZE 8192  # 定义存储大小为8192字节
 
 # board ID for firmware load
-APJ_BOARD_ID 1062  # 固件加载的板卡ID
+APJ_BOARD_ID 1085  # 固件加载的板卡ID
 
 # setup build for a peripheral firmware
 env AP_PERIPH 1  # 设置外设固件构建
@@ -28,12 +27,23 @@ define CH_CFG_ST_FREQUENCY 1000000  # 配置系统时钟频率为1MHz
 FLASH_SIZE_KB 512  # 假设闪存大小为512KB
 
 
+# 禁用循环延迟
+define HAL_DISABLE_LOOP_DELAY
+
+# 禁用监控线程
+define HAL_NO_MONITOR_THREAD
 
 # order of UARTs
-SERIAL_ORDER EMPTY  USART1  USART2  # UART顺序：USART1、空、空、USART2
+SERIAL_ORDER  EMPTY USART2  USART1
 
 # a LED to flash
 PB0 LED OUTPUT LOW  # 设置PB0为LED输出引脚，初始为低电平
+
+
+# 设置串口缓冲区大小为512字节
+define SERIAL_BUFFERS_SIZE 512
+# 设置端口中断所需堆栈大小为64字节
+define PORT_INT_REQUIRED_STACK 64
 
 
 # USART2引脚定义
@@ -43,26 +53,28 @@ PA3 USART2_RX USART2 SPEED_HIGH
 PB6 USART1_TX USART1 SPEED_HIGH
 PB7 USART1_RX USART1 SPEED_HIGH
 
-# SWD debugging
-PA13 JTMS-SWDIO SWD  # 设置PA13为SWD调试接口的TMS引脚
-PA14 JTCK-SWCLK SWD  # 设置PA14为SWD调试接口的TCK引脚
-
-
 define HAL_USE_ADC FALSE  # 禁用ADC
 define STM32_ADC_USE_ADC1 FALSE  # 禁用ADC1
 define HAL_DISABLE_ADC_DRIVER TRUE  # 禁用ADC驱动
 
 define HAL_NO_GPIO_IRQ  # 禁用GPIO中断
-
-# avoid RCIN thread to save memory
-define HAL_USE_RTC FALSE  # 禁用RTC
-
 define DMA_RESERVE_SIZE 0  # 不保留DMA空间
 
 # enable CAN support
 PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
 PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
 define CAN_APP_NODE_NAME "org.ardupilot.sky_Link"
+CAN_ORDER 1  
+
+
+# CAN池大小设置
+define HAL_CAN_POOL_SIZE 12000
 
 # 启用外设串口选项
-define HAL_PERIPH_ENABLE_SERIAL_OPTIONS 1
+define AP_PERIPH_SERIAL_OPTIONS_ENABLED 1
+
+# 允许通过串口UART进行重启命令，用于快速开发
+define HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT 0
+
+# 保持ROMFS未压缩，因为运行时没有足够的RAM来解压引导程序
+env ROMFS_UNCOMPRESSED True

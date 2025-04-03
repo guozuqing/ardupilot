@@ -63,6 +63,9 @@ define DMA_RESERVE_SIZE 0  # 不保留DMA空间
 PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
 PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
 
+
+define CAN_APP_NODE_NAME "org.ardupilot.sky_Link"
+
 # make bl baudrate match debug baudrate for easier debugging
 define BOOTLOADER_BAUDRATE 57600  # 设置引导加载程序波特率为57600，与调试波特率一致以简化调试
 

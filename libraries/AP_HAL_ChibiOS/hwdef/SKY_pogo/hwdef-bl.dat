@@ -1,0 +1,70 @@
+# Matek L431 CAN节点引导加载程序硬件定义文件
+
+# MCU类型定义
+MCU STM32L431 STM32L431xx
+
+# 晶振频率设置
+OSCILLATOR_HZ 8000000
+
+# 固件加载的板子ID
+APJ_BOARD_ID 1062
+
+# 设置为外设固件模式
+env AP_PERIPH 1
+
+# 闪存配置
+FLASH_RESERVE_START_KB 0
+FLASH_BOOTLOADER_LOAD_KB 36
+FLASH_SIZE_KB 256
+
+# 为参数预留空间
+APP_START_OFFSET_KB 4
+
+# ---------------------------------------------
+# 引导加载程序LED配置（蓝色）
+PB12 LED_BOOTLOADER OUTPUT LOW
+define HAL_LED_ON 0
+
+# 启用CAN支持
+PA11 CAN1_RX CAN1
+PA12 CAN1_TX CAN1
+# PC13 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW
+
+CAN_ORDER 1
+
+# ---------------------------------------------
+
+# 设置引导加载程序波特率与调试波特率匹配，便于调试
+define BOOTLOADER_BAUDRATE 57600
+
+# 使用较短的引导加载程序超时时间
+define HAL_BOOTLOADER_TIMEOUT 1000
+
+# 禁用串口功能
+define HAL_USE_SERIAL FALSE
+
+# 禁用GPIO中断
+define HAL_NO_GPIO_IRQ
+# 设置较小的串口缓冲区
+define SERIAL_BUFFERS_SIZE 32
+# 启用空IO
+define HAL_USE_EMPTY_IO TRUE
+# 端口中断所需堆栈大小
+define PORT_INT_REQUIRED_STACK 64
+# DMA保留大小设置为0
+define DMA_RESERVE_SIZE 0
+
+# 主堆栈大小设置
+MAIN_STACK 0x800
+# 进程堆栈大小设置
+PROCESS_STACK 0x800
+
+# 禁用循环延迟
+define HAL_DISABLE_LOOP_DELAY
+
+# 调试器支持引脚定义
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# CAN应用节点名称定义
+define CAN_APP_NODE_NAME "pogo.canuart"
