@@ -27,8 +27,7 @@ define CH_CFG_ST_FREQUENCY 1000000  # 配置系统时钟频率为1MHz
 # assume 512k flash part
 FLASH_SIZE_KB 512  # 假设闪存大小为512KB
 
-STDOUT_SERIAL SD1  # 使用SD1作为标准输出串口
-STDOUT_BAUDRATE 57600  # 标准输出波特率为57600
+
 
 # order of UARTs
 SERIAL_ORDER USART1 EMPTY EMPTY USART2  # UART顺序：USART1、空、空、USART2
@@ -36,10 +35,6 @@ SERIAL_ORDER USART1 EMPTY EMPTY USART2  # UART顺序：USART1、空、空、USAR
 # a LED to flash
 PB0 LED OUTPUT LOW  # 设置PB0为LED输出引脚，初始为低电平
 
-# USART1 for debug
-PB6 USART1_TX USART1 NODMA  # 设置PB6为USART1的TX引脚，不使用DMA
-PB7 USART1_RX USART1 NODMA  # 设置PB7为USART1的RX引脚，不使用DMA
-define DEFAULT_SERIAL0_BAUD 57600  # 默认串口0的波特率为57600
 
 # USART2 for GPS
 PA2 USART2_TX USART2  # 设置PA2为USART2的TX引脚
@@ -49,18 +44,7 @@ PA3 USART2_RX USART2  # 设置PA3为USART2的RX引脚
 PA13 JTMS-SWDIO SWD  # 设置PA13为SWD调试接口的TMS引脚
 PA14 JTCK-SWCLK SWD  # 设置PA14为SWD调试接口的TCK引脚
 
-# one I2C bus
-#PA8 I2C3_SCL I2C3  # 设置PA8为I2C3的时钟引脚
-#PB4 I2C3_SDA I2C3  # 设置PB4为I2C3的数据引脚
 
-#I2C_ORDER I2C3  # 设置I2C顺序为I2C3
-
-# compass
-#COMPASS RM3100 I2C:0:0x20 false ROTATION_YAW_270  # 设置指南针为RM3100，I2C接口，地址为0x20，旋转偏置为270度
-
-# safety LED, active low
-#PB5 SAFE_LED OUTPUT HIGH  # 设置PB5为安全LED输出，低电平有效
-#define SAFE_LED_ON 0  # 安全LED关闭
 
 define HAL_USE_ADC FALSE  # 禁用ADC
 define STM32_ADC_USE_ADC1 FALSE  # 禁用ADC1
@@ -76,13 +60,10 @@ define DMA_RESERVE_SIZE 0  # 不保留DMA空间
 # enable CAN support
 PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
 PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
-PB1 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW GPIO(70)  # 设置PB1为CAN1静默模式引脚，低速输出
+define CAN_APP_NODE_NAME "org.ardupilot.sky_rtk"
 
-# sensor power enable
-#PA12 VDD_SENSOR_EN OUTPUT HIGH  # 设置PA12为传感器电源使能引脚，初始为高电平
 
-# RTK reset
-PA4 RTK_RESET_N OUTPUT HIGH  # 设置PA4为RTK复位引脚，初始为高电平
+
 
 # PPS
 PA7 PPS INPUT PULLUP  # 设置PA7为PPS输入引脚，带上拉电阻
@@ -98,8 +79,7 @@ define GPS_MAX_INSTANCES 1  # 设置最大GPS实例数量为1
 define HAL_PERIPH_ENABLE_GPS  # 启用GPS外设
 define GPS_MOVING_BASELINE 1  # 启用GPS动态基准
 
-# define HAL_PERIPH_ENABLE_MAG  # 启用磁力计外设
-# define HAL_COMPASS_MAX_SENSORS 1  # 设置最大指南针传感器数量为1
+
 
 define AP_GPS_BACKEND_DEFAULT_ENABLED 0  # 默认禁用GPS后端
 define AP_GPS_NMEA_ENABLED 1  # 启用NMEA协议

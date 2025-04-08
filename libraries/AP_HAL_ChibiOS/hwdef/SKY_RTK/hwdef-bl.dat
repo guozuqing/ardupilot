@@ -19,22 +19,13 @@ define CH_CFG_ST_FREQUENCY 1000000  # 设置系统时钟频率为1MHz
 # assume 512k flash part
 FLASH_SIZE_KB 512  # 假设闪存大小为512KB
 
-STDOUT_SERIAL SD1  # 设置标准输出串口为SD1
-STDOUT_BAUDRATE 57600  # 设置标准输出波特率为57600
 
-# order of UARTs
-SERIAL_ORDER  # 串口顺序配置，具体内容需根据需求填写
 
-# use safety button to stay in bootloader
-PB3 STAY_IN_BOOTLOADER INPUT PULLDOWN  # 设置PB3为“保持在引导加载程序”按钮，输入模式，使用下拉电阻
-define HAL_STAY_IN_BOOTLOADER_VALUE 1  # 配置该按钮为保持在引导加载程序模式时的值为1
 
 PB0 LED_BOOTLOADER OUTPUT LOW  # 设置PB0为引导加载程序LED引脚，初始为低电平
 define HAL_LED_ON 1  # 配置LED引脚为打开状态（高电平）
 
-# USART1
-PB6 USART1_TX USART1  # 设置PB6为USART1的TX引脚
-PB7 USART1_RX USART1  # 设置PB7为USART1的RX引脚
+
 
 # USART2
 PA2 USART2_TX USART2  # 设置PA2为USART2的TX引脚
@@ -46,9 +37,9 @@ PA14 JTCK-SWCLK SWD  # 设置PA14为SWD调试接口的TCK引脚
 
 define HAL_USE_SERIAL TRUE  # 启用串口功能
 
-define STM32_SERIAL_USE_USART1 TRUE  # 启用USART1串口
+
 define STM32_SERIAL_USE_USART2 TRUE  # 启用USART2串口
-define STM32_SERIAL_USE_USART3 FALSE  # 禁用USART3串口
+
 
 define HAL_NO_GPIO_IRQ  # 禁用GPIO中断
 
@@ -64,7 +55,7 @@ PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
 PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
 
 
-define CAN_APP_NODE_NAME "org.ardupilot.sky_Link"
+define CAN_APP_NODE_NAME "org.ardupilot.sky_rtk"
 
 # make bl baudrate match debug baudrate for easier debugging
 define BOOTLOADER_BAUDRATE 57600  # 设置引导加载程序波特率为57600，与调试波特率一致以简化调试
