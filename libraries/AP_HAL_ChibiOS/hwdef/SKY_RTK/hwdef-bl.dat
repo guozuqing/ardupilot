@@ -1,0 +1,64 @@
+# MCU class and specific type
+MCU STM32F4xx STM32F412Rx  # MCU类和特定型号
+
+FLASH_RESERVE_START_KB 0  # 引导加载程序预留0KB闪存
+# two sectors for bootloader, two for storage
+FLASH_BOOTLOADER_LOAD_KB 64  # 引导加载程序占用64KB闪存
+
+# board ID for firmware load
+APJ_BOARD_ID 1085  # 固件加载时的板卡ID
+
+# setup build for a peripheral firmware
+env AP_PERIPH 1  # 设置构建为外设固件
+
+# crystal frequency
+OSCILLATOR_HZ 16000000  # 设置晶体振荡频率为16MHz
+
+define CH_CFG_ST_FREQUENCY 1000000  # 设置系统时钟频率为1MHz
+
+# assume 512k flash part
+FLASH_SIZE_KB 512  # 假设闪存大小为512KB
+
+
+
+
+PB0 LED_BOOTLOADER OUTPUT LOW  # 设置PB0为引导加载程序LED引脚，初始为低电平
+define HAL_LED_ON 1  # 配置LED引脚为打开状态（高电平）
+
+
+
+# USART2
+PA2 USART2_TX USART2  # 设置PA2为USART2的TX引脚
+PA3 USART2_RX USART2  # 设置PA3为USART2的RX引脚
+
+# SWD debugging
+PA13 JTMS-SWDIO SWD  # 设置PA13为SWD调试接口的TMS引脚
+PA14 JTCK-SWCLK SWD  # 设置PA14为SWD调试接口的TCK引脚
+
+define HAL_USE_SERIAL TRUE  # 启用串口功能
+
+
+define STM32_SERIAL_USE_USART2 TRUE  # 启用USART2串口
+
+
+define HAL_NO_GPIO_IRQ  # 禁用GPIO中断
+
+define HAL_USE_EMPTY_IO TRUE  # 启用空的I/O配置
+
+# avoid timer and RCIN threads to save memory
+define HAL_NO_TIMER_THREAD  # 禁用定时器和RCIN线程以节省内存
+
+define DMA_RESERVE_SIZE 0  # 不保留DMA空间
+
+# enable CAN support
+PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
+PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
+
+
+define CAN_APP_NODE_NAME "org.ardupilot.sky_rtk"
+
+# make bl baudrate match debug baudrate for easier debugging
+define BOOTLOADER_BAUDRATE 57600  # 设置引导加载程序波特率为57600，与调试波特率一致以简化调试
+
+# use a small bootloader timeout
+define HAL_BOOTLOADER_TIMEOUT 1000  # 设置引导加载程序超时为1000毫秒

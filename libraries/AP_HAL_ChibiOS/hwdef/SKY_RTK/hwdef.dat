@@ -1,0 +1,96 @@
+# MCU class and specific type
+MCU STM32F4xx STM32F412Rx  # MCU类和特定类型
+
+# default to all pins low to avoid ESD issues
+DEFAULTGPIO OUTPUT LOW PULLDOWN  # 默认所有引脚设置为低电平，避免静电问题
+
+# bootloader starts firmware at 64k
+FLASH_RESERVE_START_KB 64  # 引导加载程序从64K开始固件
+
+# store parameters in pages 2 and 3
+STORAGE_FLASH_PAGE 2  # 存储参数在第2和第3页
+define HAL_STORAGE_SIZE 8192  # 定义存储大小为8192字节
+
+# board ID for firmware load
+APJ_BOARD_ID 1085  # 固件加载的板卡ID
+
+# setup build for a peripheral firmware
+env AP_PERIPH 1  # 设置外设固件构建
+
+STM32_ST_USE_TIMER 5  # 使用定时器5
+
+# crystal frequency
+OSCILLATOR_HZ 16000000  # 晶体频率为16MHz
+
+define CH_CFG_ST_FREQUENCY 1000000  # 配置系统时钟频率为1MHz
+
+# assume 512k flash part
+FLASH_SIZE_KB 512  # 假设闪存大小为512KB
+
+
+
+# order of UARTs
+SERIAL_ORDER EMPTY USART2  
+
+# a LED to flash
+PB0 LED OUTPUT LOW  # 设置PB0为LED输出引脚，初始为低电平
+
+
+# USART2 for GPS
+PA2 USART2_TX USART2  # 设置PA2为USART2的TX引脚
+PA3 USART2_RX USART2  # 设置PA3为USART2的RX引脚
+
+
+
+# SWD debugging
+PA13 JTMS-SWDIO SWD  # 设置PA13为SWD调试接口的TMS引脚
+PA14 JTCK-SWCLK SWD  # 设置PA14为SWD调试接口的TCK引脚
+
+
+
+define HAL_USE_ADC FALSE  # 禁用ADC
+define STM32_ADC_USE_ADC1 FALSE  # 禁用ADC1
+define HAL_DISABLE_ADC_DRIVER TRUE  # 禁用ADC驱动
+
+define HAL_NO_GPIO_IRQ  # 禁用GPIO中断
+
+# avoid RCIN thread to save memory
+define HAL_USE_RTC FALSE  # 禁用RTC
+
+define DMA_RESERVE_SIZE 0  # 不保留DMA空间
+
+# enable CAN support
+PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
+PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
+define CAN_APP_NODE_NAME "org.ardupilot.sky_rtk"
+
+
+
+
+# PPS
+PA7 PPS INPUT PULLUP  # 设置PA7为PPS输入引脚，带上拉电阻
+
+define HAL_DEVICE_THREAD_STACK 768  # 设置设备线程栈大小为768字节
+
+# we setup a small defaults.parm
+define AP_PARAM_MAX_EMBEDDED_PARAM 256  # 设置最大嵌入式参数数量为256
+
+define GPS_MAX_RECEIVERS 1  # 设置最大GPS接收器数量为1
+define GPS_MAX_INSTANCES 1  # 设置最大GPS实例数量为1
+
+define HAL_PERIPH_ENABLE_GPS  # 启用GPS外设
+define GPS_MOVING_BASELINE 1  # 启用GPS动态基准
+
+
+
+define AP_GPS_BACKEND_DEFAULT_ENABLED 0  # 默认禁用GPS后端
+define AP_GPS_NMEA_ENABLED 1  # 启用NMEA协议
+define AP_GPS_NMEA_UNICORE_ENABLED 1  # 启用NMEA单核心支持
+
+define HAL_GPS1_TYPE_DEFAULT 25  # 设置默认GPS类型为25
+
+# custom config once sensor is found
+define AP_GPS_NMEA_CUSTOM_CONFIG_STRING "CONFIG COM1 230400 8 N 1"  # 定义GPS配置字符串
+
+# custom config for GPS probe
+define NMEA_UNICORE_SETUP "CONFIG COM1 230400 8 n 1\r\nGPGGA 0.2\r\n"  # GPS探针的自定义配置
