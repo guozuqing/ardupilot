@@ -101,6 +101,7 @@ public:
         k_param_imu,
         k_param_dac,
         k_param__gcs,
+        k_param_bat_params,
     };
 
     AP_Int16 format_version;

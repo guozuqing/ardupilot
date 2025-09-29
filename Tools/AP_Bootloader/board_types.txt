@@ -479,3 +479,4 @@ AP_HW_Pixhawk6_ODID                 10053
 
 # do not allocate board IDs above 10,000 for non-ODID boards.
 # do not allocate board IDs above 19,999 in this file.
+AP_HW_Sky_PMU                       8888

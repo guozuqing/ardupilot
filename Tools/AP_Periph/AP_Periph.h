@@ -40,6 +40,7 @@
 #include <AP_RCProtocol/AP_RCProtocol_config.h>
 #include "rc_in.h"
 #include "batt_balance.h"
+#include "bat_params.h"
 #include "networking.h"
 #include "serial_options.h"
 #if AP_SIM_ENABLED
@@ -382,6 +383,9 @@ public:
     void batt_balance_update();
     BattBalance battery_balance;
 #endif
+
+// 自定义BAT参数组 (始终启用)
+BATParams bat_params;
 
 #if AP_PERIPH_SERIAL_OPTIONS_ENABLED
     SerialOptions serial_options;

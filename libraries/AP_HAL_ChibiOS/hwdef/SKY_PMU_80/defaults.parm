@@ -1,0 +1,28 @@
+# SKY_PMU_80 默认参数配置文件
+# 使用自定义BAT参数组进行电池管理
+
+# 自定义BAT参数 (用于电压计算电量)
+BAT_CELL_NUM,6          # 电池串数
+BAT_FULL_VOLTAGE,4200   # 单体电池满电电压 (mV)
+BAT_LOW_VOLTAGE,3500    # 单体电池低电压 (mV)
+BAT_CAPACITY,5000       # 电池容量 (mAh)
+
+# CAN 网络参数
+CAN_D1_PROTOCOL,1       # CAN1 协议：DroneCAN
+CAN_P1_DRIVER,1         # CAN1 驱动：启用
+
+# 外设设备参数
+PERIPH_ID,0             # 外设节点ID (0=自动分配)
+
+# 说明：
+# BAT参数组提供基于电压的精确电量计算：
+# - BAT_CELL_NUM: 电池串数设置 (3S=3, 4S=4, 6S=6等)
+# - BAT_FULL_VOLTAGE: 单体电池满电电压 (锂电池4200mV, 磷酸铁锂3650mV)
+# - BAT_LOW_VOLTAGE: 单体电池低电压阈值 (锂电池3500mV, 磷酸铁锂3000mV)
+# - BAT_CAPACITY: 电池容量 (mAh)
+# 
+# 电量计算特性：
+# - 完全基于实时电压计算，不依赖电流累积
+# - INA239提供准确的电流测量，无需额外校准
+# - 采用7段精确算法，准确反映锂电池充电状态
+# - 支持不同类型电池 (锂电池/磷酸铁锂等)

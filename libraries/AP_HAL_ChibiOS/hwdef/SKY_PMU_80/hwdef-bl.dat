@@ -1,0 +1,79 @@
+# 硬件定义文件，用于 chibios_pins.py 处理
+
+# 适用于 Sierra RM3100 和 Airspeed 模块的通用硬件定义
+
+# MCU 类别及具体型号
+MCU STM32L431 STM32L431xx   # 使用 STM32L431 微控制器
+
+# Bootloader 相关配置
+FLASH_RESERVE_START_KB 0               # 不保留额外的 Flash 空间（通常为 0）
+FLASH_BOOTLOADER_LOAD_KB 36            # Bootloader 占用 Flash 的前 36KB
+
+# 应用程序偏移配置（用于参数保留等）
+APP_START_OFFSET_KB 4                  # 应用程序从第 4KB 开始
+
+# 板卡唯一 ID，用于识别板卡类型（在 ArduPilot 的 board_types.txt 中定义）
+APJ_BOARD_ID AP_HW_Sky_PMU
+
+# 设置为外设固件（AP_Periph）
+env AP_PERIPH 1                        # 表示这是一个 AP_Periph 固件，而不是飞控固件
+
+# 外部晶振频率
+OSCILLATOR_HZ 16000000                 # 外部晶振为 16MHz
+
+# Flash 总容量
+FLASH_SIZE_KB 256                      # 芯片内置 256KB 的 Flash
+
+# Bootloader 中的故障指示 LED
+PB6 LED_BOOTLOADER OUTPUT LOW          # 使用 PB6 作为 LED，初始为低电平（Amber LED）
+
+define HAL_LED_ON 1                    # LED 点亮为高电平
+
+# 串口输出配置
+STDOUT_SERIAL SD1                      # 使用 SD1 作为标准输出串口（对应 USART1）
+STDOUT_BAUDRATE 57600                 # 波特率为 57600，便于调试
+
+# 串口配置顺序
+SERIAL_ORDER USART1                    # 仅使用 USART1
+
+# USART1 引脚定义
+PA9  USART1_TX USART1 SPEED_HIGH NODMA  # PA9 为 TX 引脚，高速，无 DMA
+PA10 USART1_RX USART1 SPEED_HIGH NODMA  # PA10 为 RX 引脚，高速，无 DMA
+
+# 启用串口功能
+define HAL_USE_SERIAL TRUE
+define STM32_SERIAL_USE_USART1 TRUE
+define SERIAL_BUFFERS_SIZE 32          # 串口缓冲区大小为 32 字节
+
+# GPIO 配置优化
+define HAL_NO_GPIO_IRQ                 # 不使用 GPIO 中断（节省资源）
+define HAL_USE_EMPTY_IO TRUE          # 未使用的引脚默认配置为空（不驱动）
+
+# 中断栈配置
+define PORT_INT_REQUIRED_STACK 64      # 端口中断需要的额外栈空间为 64 字节
+
+# 无需保留 DMA 内存
+define DMA_RESERVE_SIZE 0              # 不使用 DMA，故不保留内存
+
+# 堆栈配置
+MAIN_STACK 0x800                       # 主栈大小为 2KB
+PROCESS_STACK 0x800                   # 进程栈大小为 2KB
+
+# 启用 CAN 总线（适用于 UAVCAN 或 DroneCAN）
+PB8  CAN1_RX CAN1                      # PB8 为 CAN1 接收
+PB9  CAN1_TX CAN1                      # PB9 为 CAN1 发送
+define CAN_APP_NODE_NAME "org.ardupilot.sky_pmu"
+CAN_ORDER 1                            # 设置为第一个 CAN 设备
+
+# 调试接口支持（SWD 模式）
+PA13 JTMS-SWDIO SWD                   # SWDIO 引脚
+PA14 JTCK-SWCLK SWD                   # SWCLK 引脚
+
+# Bootloader 串口波特率匹配标准输出，便于调试
+define BOOTLOADER_BAUDRATE 57600
+
+# Bootloader 启动超时时间（毫秒）
+define HAL_BOOTLOADER_TIMEOUT 1000     # Bootloader 等待 1000ms 后自动跳转应用
+
+# 添加 SPI 芯片选择引脚，Bootloader 中需拉高，防止外设误动作
+PB0 MAG_CS CS                         # PB0 为INA239的 CS 引脚（Chip Select）

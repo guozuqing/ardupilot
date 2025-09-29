@@ -251,16 +251,8 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #endif
 
 #if AP_PERIPH_BATTERY_ENABLED
-    // @Group: BATT
-    // @Path: ../libraries/AP_BattMonitor/AP_BattMonitor.cpp
-    GOBJECT(battery_lib, "BATT", AP_BattMonitor),
-
-    // @Param: BATT_HIDE_MASK
-    // @DisplayName: Battery hide mask
-    // @Description: Instance mask of local battery index(es) to prevent transmitting their status over CAN. This is useful for hiding a "battery" instance that is used locally in the peripheral but don't want them to be treated as a battery source(s) to the autopilot. For example, an AP_Periph battery monitor with multiple batteries that monitors each locally for diagnostic or other purposes, but only reports as a single SUM battery monitor to the autopilot.
-    // @Bitmask: 0:BATT, 1:BATT2, 2:BATT3, 3:BATT4, 4:BATT5, 5:BATT6, 6:BATT7, 7:BATT8, 8:BATT9, 9:BATTA, 10:BATTB, 11:BATTC, 12:BATTD, 13:BATTE, 14:BATTF, 15:BATTG
-    // @User: Advanced
-    GSCALAR(battery_hide_mask, "BATT_HIDE_MASK", HAL_PERIPH_BATT_HIDE_MASK_DEFAULT),
+    // BATT参数组被隐藏，不在用户界面显示
+    // 但保持功能启用以支持INA239传感器工作
 #endif
 
 #if AP_PERIPH_MAG_ENABLED
@@ -630,11 +622,11 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GOBJECT(g_rcin, "RC",  Parameters_RCIN),
 #endif
 
-#if AP_PERIPH_BATTERY_BALANCE_ENABLED
-    // @Group: BAL
-    // @Path: batt_balance.cpp
-    GOBJECT(battery_balance, "BAL",  BattBalance),
-#endif
+// BAL参数组已禁用，使用自定义BAT参数组替代
+
+// @Group: BAT
+// @Path: bat_params.cpp
+GOBJECT(bat_params, "BAT", BATParams),
 
 #if AP_PERIPH_SERIAL_OPTIONS_ENABLED
     // @Group: UART

@@ -1,0 +1,162 @@
+# 硬件定义文件，供 chibios_pins.py 使用，适用于 PMU 外设平台
+# 包含 INA239 电流传感器的配置
+
+# MCU 类别及型号
+MCU STM32L431 STM32L431xx              # 使用 STM32L431 MCU
+
+# Bootloader + 参数区总共占用 40KB（36K Bootloader + 4K 参数起始偏移）
+FLASH_RESERVE_START_KB 40              # 应用程序从第 40KB 处开始运行
+
+# 参数存储位置：使用 Flash 的第 18 和 19 页（每页一般为 2KB 或 4KB）
+STORAGE_FLASH_PAGE 18
+define HAL_STORAGE_SIZE 800            # 参数存储空间大小为 800 字节
+
+# ChibiOS 系统定时器使用 TIM15，配置为 16bit 分辨率
+STM32_ST_USE_TIMER 15
+define CH_CFG_ST_RESOLUTION 16
+
+# 板卡标识符（需在 ArduPilot 的 board_types.txt 中定义）
+APJ_BOARD_ID AP_HW_Sky_PMU
+
+# 构建为 AP_Periph 固件（非飞控固件）
+env AP_PERIPH 1
+
+# 外部晶振频率为 8MHz
+OSCILLATOR_HZ 8000000
+
+# MCU 内部 Flash 容量为 256KB
+FLASH_SIZE_KB 256
+
+# 为 CAN 总线驱动预留内存池大小（单位：字节）
+define HAL_CAN_POOL_SIZE 6000
+
+# LED 指示灯配置（PB6，低电平点亮）
+PB6 LED OUTPUT LOW GPIO(1)
+
+# 明确禁用串口驱动
+define HAL_USE_SERIAL FALSE
+define AP_HAL_UARTDRIVER_ENABLED 0
+
+# 无串口配置（不使用UART）
+# STDOUT_SERIAL SD1
+# STDOUT_BAUDRATE 57600
+# SERIAL_ORDER USART1
+
+# SPI1 总线配置（用于 INA239 电流传感器）
+PA5 SPI1_SCK SPI1
+PA6 SPI1_MISO SPI1
+PA7 SPI1_MOSI SPI1
+PB0 INA239_CS CS                       # SPI 片选引脚
+
+# 定义 SPI 设备：INA239 电流传感器
+SPIDEV INA23X SPI1 DEVID1 INA239_CS MODE1 10*MHZ 10*MHZ
+
+# 不使用 I2C 接口
+# PB6 I2C1_SCL I2C1
+# PB7 I2C1_SDA I2C1
+
+# I2C 参数设置（已禁用）
+# define HAL_I2C_CLEAR_ON_TIMEOUT 0
+# define HAL_I2C_INTERNAL_MASK 1
+# I2C_ORDER I2C1
+
+# 不使用串口重启命令（无串口配置）
+# define HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT 0
+
+# 禁用其他不需要的外设
+define HAL_USE_I2C FALSE
+define STM32_I2C_USE_I2C1 FALSE
+define STM32_I2C_USE_I2C2 FALSE
+define STM32_I2C_USE_I2C3 FALSE
+
+# 禁用PWM输出（PMU不需要）
+define HAL_USE_PWM FALSE
+define STM32_PWM_USE_TIM1 FALSE
+define STM32_PWM_USE_TIM2 FALSE
+define STM32_PWM_USE_TIM3 FALSE
+define STM32_PWM_USE_TIM4 FALSE
+
+# 禁用ICU（Input Capture Unit）
+define HAL_USE_ICU FALSE
+define STM32_ICU_USE_TIM1 FALSE
+define STM32_ICU_USE_TIM2 FALSE
+define STM32_ICU_USE_TIM3 FALSE
+define STM32_ICU_USE_TIM4 FALSE
+
+# SWD 调试接口支持
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# 禁用 GPIO 中断、DMA 内存预留
+define HAL_NO_GPIO_IRQ
+define DMA_RESERVE_SIZE 0
+
+# 中断处理所需栈空间（单位：字节）
+define PORT_INT_REQUIRED_STACK 64
+
+# ISR 使用的主栈空间大小：768 字节
+MAIN_STACK 0x300
+
+# 主线程使用的栈空间大小：2560 字节
+PROCESS_STACK 0xA00
+
+# 启用 CAN1 总线，使用 PB8/PB9
+PB8 CAN1_RX CAN1
+PB9 CAN1_TX CAN1
+CAN_ORDER 1
+define CAN_APP_NODE_NAME "org.ardupilot.sky_pmu"
+# 明确禁用 ADC 驱动（PMU不需要ADC）
+define HAL_USE_ADC FALSE
+define STM32_ADC_USE_ADC1 FALSE
+# PA0 VDD_5V_SENS ADC1 SCALE(2)          # 电压缩放比为 1/2（电阻分压）
+
+# 嵌入式参数上限为 512 项
+define AP_PARAM_MAX_EMBEDDED_PARAM 512
+
+# 启用电流传感器功能（对应 sensor drivers）
+# define AP_PERIPH_MAG_ENABLED 1
+# define AP_PERIPH_AIRSPEED_ENABLED 1
+# define AIRSPEED_MAX_SENSORS 1
+# define HAL_AIRSPEED_TYPE_DEFAULT 1
+
+# 保持基本电池监控功能启用 (但隐藏BATT参数)
+define AP_PERIPH_BATTERY_ENABLED 1
+define AP_BATTERY_INA239_ENABLED 1
+define AP_BATTERY_INA239_SPI_DEVICE "INA23X"
+define HAL_BATT_MONITOR_DEFAULT 26
+define AP_PERIPH_BATTERY_MODEL_NAME "SKY_PMU_80"
+
+# 禁用电池平衡监控功能 (使用自定义BAT参数组替代)
+define AP_PERIPH_BATTERY_BALANCE_ENABLED 0
+
+# 自定义BAT参数默认值定义
+define AP_PERIPH_BAT_CELL_NUM_DEFAULT 6                # 电池串数默认值6S
+define AP_PERIPH_BAT_FULL_VOLTAGE_DEFAULT 4200         # 满电电压4200mV
+define AP_PERIPH_BAT_LOW_VOLTAGE_DEFAULT 3500          # 低电压3500mV
+define AP_PERIPH_BAT_CAPACITY_DEFAULT 5000             # 电池容量5000mAh
+
+# 启用更多电池功能模块以显示更多参数
+define AP_BATTERY_WATT_MAX_ENABLED 1           # 启用最大功率限制功能
+define AP_BATTERY_OPTIONS_PARAM_ENABLED 1     # 启用电池选项参数
+
+# 电池参数配置 - 使用正确的宏定义名称
+define AP_BATT_MONITOR_BATTERY_CAPACITY 5000   # 默认电池容量 5000mAh
+
+# INA239传感器默认配置参数
+define HAL_BATTMON_INA239_MAX_CURRENT 90      # 默认最大电流90A
+define HAL_BATTMON_INA239_SHUNT_RESISTANCE 0.0002  # 默认分流电阻0.2mΩ
+
+# 禁用 ROMFS 压缩，因为解压需要过多 RAM（STM32L431 RAM 紧张）
+env ROMFS_UNCOMPRESSED True
+
+# 禁用不必要的线程
+define HAL_NO_RCOUT_THREAD
+define HAL_NO_TIMER_THREAD
+
+# 禁用 RCIN 接收线程支持（PMU不需要）
+undef HAL_RCIN_THREAD_ENABLED
+define HAL_RCIN_THREAD_ENABLED 0
+
+# 禁用其他不必要的功能
+define AP_PERIPH_MSP_ENABLED 0
+define AP_PERIPH_ADSB_ENABLED 0
