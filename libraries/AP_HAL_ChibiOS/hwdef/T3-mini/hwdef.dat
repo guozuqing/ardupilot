@@ -1,0 +1,435 @@
+# =====================================================================================================================
+# Holybro V6X (T3-mini) 飞控硬件定义文件
+# 由 chibios_hwdef.py 工具处理
+# =====================================================================================================================
+
+
+# =====================================================================================================================
+# 基本配置：MCU / 时钟 / 内存
+# =====================================================================================================================
+
+# MCU型号：STM32H743xx (Cortex-M7, 480MHz, 2MB Flash, 1MB RAM)
+MCU STM32H7xx STM32H743xx
+
+# 外部晶振频率：16MHz
+OSCILLATOR_HZ 16000000
+
+# 系统定时器：使用TIM2
+STM32_ST_USE_TIMER 2
+
+# 板级ID：与PX4 FMU V6X兼容
+APJ_BOARD_ID TARGET_HW_PX4_FMU_V6X
+
+# Flash内存布局
+FLASH_RESERVE_START_KB 128        # 引导加载器占用前128KB
+FLASH_SIZE_KB 2048                # 总Flash大小2MB
+env USE_ALT_RAM_MAP 1             # 使用备用RAM映射
+
+
+# =====================================================================================================================
+# 串口与GPIO
+# =====================================================================================================================
+
+# 串口枚举顺序 (仅启用实际使用的串口)
+SERIAL_ORDER OTG1 UART7 UART5 USART1
+
+# GPIO默认状态：低电平输出，下拉
+DEFAULTGPIO OUTPUT LOW PULLDOWN
+
+
+# =====================================================================================================================
+# USB接口
+# =====================================================================================================================
+
+# USB OTG1 (主USB接口)
+PA11 OTG_FS_DM OTG1              # USB D-
+PA12 OTG_FS_DP OTG1              # USB D+
+PA9  VBUS INPUT OPENDRAIN        # USB电源检测
+
+
+# =====================================================================================================================
+# 调试接口
+# =====================================================================================================================
+
+# SWD调试接口
+PA13 JTMS-SWDIO SWD              # SWD数据线
+PA14 JTCK-SWCLK SWD              # SWD时钟线
+
+
+# =====================================================================================================================
+# 数传串口
+# =====================================================================================================================
+
+# Telem1 (UART7) - 数传1接口
+PE8  UART7_TX UART7
+PF6  UART7_RX UART7
+PF8  UART7_RTS UART7             # 硬件流控RTS
+PE10 UART7_CTS UART7             # 硬件流控CTS
+
+# Telem2 (UART5) - 数传2接口
+PC12 UART5_TX  UART5
+PD2  UART5_RX  UART5
+PC8  UART5_RTS UART5             # 硬件流控RTS
+PC9  UART5_CTS UART5             # 硬件流控CTS
+
+# Telem3 (USART2) - 未使用
+#PD5 USART2_TX USART2
+#PA3 USART2_RX USART2
+#PD4 USART2_RTS USART2            # 硬件流控RTS
+#PD3 USART2_CTS USART2            # 硬件流控CTS
+
+
+# =====================================================================================================================
+# GPS接口
+# =====================================================================================================================
+
+# GPS1 (USART1) - GPS使用UART协议
+PB6 USART1_TX USART1
+PB7 USART1_RX USART1
+
+# GPS2 (UART8) - 未使用
+#PE1 UART8_TX UART8
+#PE0 UART8_RX UART8
+
+
+# =====================================================================================================================
+# 其他串口
+# =====================================================================================================================
+
+# UART4 - 未使用
+#PH13 UART4_TX UART4
+#PH14 UART4_RX UART4
+
+# Debug (USART3) - 未使用
+#PD8 USART3_TX USART3
+#PD9 USART3_RX USART3
+
+# RC输入 (USART6_RX引脚复用)
+PC7 USART6_RX USART6
+
+# 注意：PC7原本是IOMCU的RX引脚，现在配置为RC输入
+# 如需使用IOMCU，取消以下注释并禁用上面的PC7配置：
+#PC6 USART6_TX USART6
+#define IOMCU_UART USART6
+
+
+# =====================================================================================================================
+# 以太网接口 (RMII模式)
+# =====================================================================================================================
+
+# 以太网PHY: LAN8742A
+PC1  ETH_MDC           ETH1      # 管理数据时钟
+PA2  ETH_MDIO          ETH1      # 管理数据I/O
+PC4  ETH_RMII_RXD0     ETH1      # 接收数据0
+PC5  ETH_RMII_RXD1     ETH1      # 接收数据1
+PG13 ETH_RMII_TXD0     ETH1      # 发送数据0
+PG12 ETH_RMII_TXD1     ETH1      # 发送数据1
+PB11 ETH_RMII_TX_EN    ETH1      # 发送使能
+PA7  ETH_RMII_CRS_DV   ETH1      # 载波侦听/数据有效
+PA1  ETH_RMII_REF_CLK  ETH1      # 参考时钟50MHz
+PG15 Ethernet_PWR_EN OUTPUT HIGH # 以太网电源使能（高电平禁用）
+
+# PHY芯片配置
+define BOARD_PHY_ID  MII_LAN8742A_ID
+define BOARD_PHY_RMII
+
+
+# =====================================================================================================================
+# ADC模拟输入 (已完全禁用 - 硬件未连接)
+# =====================================================================================================================
+
+# 禁用ADC子系统（硬件未连接，避免PreArm报错）
+define HAL_USE_ADC FALSE
+define STM32_ADC_USE_ADC1 FALSE
+define HAL_DISABLE_ADC_DRIVER TRUE
+
+# 以下ADC配置已被禁用（硬件未连接）：
+# PA0  SCALED1_V3V3         ADC1 SCALE(2)
+# PA4  SCALED2_V3V3         ADC1 SCALE(2)
+# PB0  SCALED3_V3V3         ADC1 SCALE(2)
+# PF12 SCALED4_V3V3         ADC1 SCALE(2)
+# PB1  VDD_5V_SENS          ADC1 SCALE(2)
+# PC2  ADC1_6V6 (模拟输入12) ADC1 SCALE(2)
+# PC3  ADC1_3V3 (模拟输入13) ADC1 SCALE(1)
+
+
+# =====================================================================================================================
+# SPI总线与设备
+# =====================================================================================================================
+
+# ----- SPI1: IIM42653 IMU -----
+PA5 SPI1_SCK SPI1
+PB5 SPI1_MOSI SPI1
+PG9 SPI1_MISO SPI1
+PI9 IMU1_CS CS
+PF2 IMU1_DRDY INPUT
+
+
+
+
+# ----- SPI2: ICM42688预留 -----
+PI1 SPI2_SCK  SPI2
+PI2 SPI2_MISO SPI2
+PI3 SPI2_MOSI SPI2
+PH5 SP2_CS1   CS
+PA10 SP2_DRDY2 INPUT
+
+
+# ----- SPI3: BMI088预留 -----
+PC10 SPI3_SCK  SPI3
+PC11 SPI3_MISO SPI3
+PB2  SPI3_MOSI SPI3
+PI4  SP3_CS1   CS                # BMI088加速度计CS
+PI8  SP3_CS2   CS                # BMI088陀螺仪CS
+PI6  SP3_DRDY1 INPUT
+PI7  SP3_DRDY2 INPUT GPIO(93)
+define SP3_DRDY2 93
+
+# BMI088配置
+SPIDEV bmi088_g SPI3 DEVID1 SP3_CS2 MODE3 10*MHZ 10*MHZ
+SPIDEV bmi088_a SPI3 DEVID2 SP3_CS1 MODE3 10*MHZ 10*MHZ
+
+# IIM42653 IMU配置 (Invensense 42系列高性能IMU)
+SPIDEV iim42653  SPI1 DEVID1  IMU1_CS MODE3  2*MHZ 8*MHZ
+IMU Invensensev3 SPI:iim42653 ROTATION_ROLL_90_YAW_270
+IMU BMI088 SPI:bmi088_a SPI:bmi088_g ROTATION_ROLL_180_PITCH_90
+
+
+# ----- SPI4: 保留 -----
+#PE12 SPI4_SCK  SPI4
+#PE13 SPI4_MISO SPI4
+#PE14 SPI4_MOSI SPI4
+#PF3  SP4_DRDY1 INPUT
+PH15 SP4_CS1   CS
+
+
+# ----- SPI5: FRAM存储器 -----
+PF7  SPI5_SCK  SPI5
+PH7  SPI5_MISO SPI5
+PF11 SPI5_MOSI SPI5
+PG7  FRAM_CS   CS
+
+# RAMTRON FRAM (铁电存储器，用于参数存储)
+SPIDEV ramtron SPI5 DEVID1 FRAM_CS MODE3 8*MHZ 8*MHZ
+
+
+# ----- SPI6: 外部扩展接口 (已禁用以节省DMA通道) -----
+#PB3  SPI6_SCK  SPI6
+#PA6  SPI6_MISO SPI6
+#PG14 SPI6_MOSI SPI6
+#PI10 EXT1_CS   CS
+
+
+# =====================================================================================================================
+# I2C总线与设备
+# =====================================================================================================================
+
+# I2C总线枚举顺序 (I2C4为内部总线)
+I2C_ORDER I2C4 I2C1 I2C2 I2C3
+define HAL_I2C_INTERNAL_MASK 1   # bit0=1表示I2C4为内部总线
+
+# I2C1: 外部设备 (GPS1模块、外部罗盘等)
+PB8 I2C1_SCL I2C1
+PB9 I2C1_SDA I2C1
+
+# I2C2: 外部罗盘
+PF1 I2C2_SCL I2C2
+PF0 I2C2_SDA I2C2
+
+# I2C3: 外部扩展接口
+PA8 I2C3_SCL I2C3
+PH8 I2C3_SDA I2C3
+
+# I2C4: 内部总线 (板载传感器)
+PF14 I2C4_SCL I2C4
+PF15 I2C4_SDA I2C4
+
+
+# =====================================================================================================================
+# PWM输出与定时器
+# =====================================================================================================================
+
+# 主PWM输出通道 (FMU1-8)
+PI0  TIM5_CH4  TIM5 PWM(1) GPIO(50)
+PH12 TIM5_CH3  TIM5 PWM(2) GPIO(51)
+PH11 TIM5_CH2  TIM5 PWM(3) GPIO(52)
+PH10 TIM5_CH1  TIM5 PWM(4) GPIO(53)
+PD13 TIM4_CH2  TIM4 PWM(5) GPIO(54)
+PD14 TIM4_CH3  TIM4 PWM(6) GPIO(55)
+
+# PWM通道7-8 (无DMA支持)
+PH6  TIM12_CH1 TIM12 PWM(7) GPIO(56) NODMA
+PH9  TIM12_CH2 TIM12 PWM(8) GPIO(57) NODMA
+
+# 捕获输入与通用GPIO
+PE11 FMU_CAP1 INPUT GPIO(58)     # 捕获输入1
+PC0  NFC_GPIO  INPUT GPIO(60)    # NFC通用GPIO
+
+# RC遥控接收输入 (PI5为备用RC输入引脚)
+#PI5 TIM8_CH1 TIM8 RCININT PULLDOWN LOW
+
+# 蜂鸣器
+PF9 TIM14_CH1 TIM14 GPIO(77) ALARM
+
+
+# =====================================================================================================================
+# CAN总线
+# =====================================================================================================================
+
+# CAN1总线
+PD0 CAN1_RX CAN1
+PD1 CAN1_TX CAN1
+
+# CAN2总线
+PB12 CAN2_RX CAN2
+PB13 CAN2_TX CAN2
+
+
+# =====================================================================================================================
+# 电源管理
+# =====================================================================================================================
+
+# SD卡电源使能
+PC13 VDD_3V3_SD_CARD_EN OUTPUT HIGH
+
+# 传感器电源使能 - 未使用
+#PI11 VDD_3V3_SENSORS1_EN   OUTPUT HIGH
+#PF4  VDD_3V3_SENSORS2_EN   OUTPUT HIGH
+#PE7  VDD_3V3_SENSORS3_EN   OUTPUT HIGH
+#PG8  VDD_3V3_SENSORS4_EN   OUTPUT HIGH
+
+# 外设电源使能 - 未使用
+#PG10 nVDD_5V_HIPOWER_EN    OUTPUT LOW
+#PG4  nVDD_5V_PERIPH_EN     OUTPUT LOW
+
+# Spektrum接收机电源控制 - 未使用
+#PH2  SPEKTRUM_PWR OUTPUT HIGH GPIO(73)
+#define HAL_GPIO_SPEKTRUM_PWR 73
+#define HAL_SPEKTRUM_PWR_ENABLED 1
+
+# 电源状态检测
+PE15 VDD_5V_PERIPH_nOC  INPUT PULLUP     # 5V外设过流检测 (已连接)
+
+# 以下电源检测未使用
+#PF13 VDD_5V_HIPOWER_nOC INPUT PULLUP    # 5V高功率过流检测
+#PG1  VDD_BRICK_nVALID   INPUT PULLUP    # 电源模块1有效检测
+#PG2  VDD_BRICK2_nVALID  INPUT PULLUP    # 电源模块2有效检测
+#PG3  VDD_BRICK3_nVALID  INPUT PULLUP    # 电源模块3有效检测
+
+# IMU加热器 - 未使用
+#PB10 HEATER_EN OUTPUT LOW GPIO(80)
+#define HAL_HEATER_GPIO_PIN 80
+#define HAL_HAVE_IMU_HEATER 1
+#define HAL_IMU_TEMP_DEFAULT 45
+#define HAL_IMUHEAT_P_DEFAULT 50
+#define HAL_IMUHEAT_I_DEFAULT 0.07
+
+# 解锁状态指示 (低电平有效)
+PE6 nARMED OUTPUT HIGH
+
+
+# =====================================================================================================================
+# microSD卡接口
+# =====================================================================================================================
+
+# SDMMC2接口 (4位数据模式)
+PD6  SDMMC2_CK  SDMMC2               # 时钟
+PD7  SDMMC2_CMD SDMMC2               # 命令
+PB14 SDMMC2_D0  SDMMC2               # 数据0
+PB15 SDMMC2_D1  SDMMC2               # 数据1
+PG11 SDMMC2_D2  SDMMC2               # 数据2
+PB4  SDMMC2_D3  SDMMC2               # 数据3
+
+define FATFS_HAL_DEVICE SDCD2        # FAT文件系统设备
+
+
+# =====================================================================================================================
+# 板载传感器：气压计 / 罗盘
+# =====================================================================================================================
+
+# 气压计: ICP201XX (I2C4内部总线)
+BARO ICP201XX I2C:0:0x64
+
+# 罗盘: IIS2MDC (意法半导体3轴磁力计)
+COMPASS IIS2MDC I2C:0:0x1E false ROTATION_ROLL_90_YAW_270
+define HAL_PROBE_EXTERNAL_I2C_COMPASSES
+define AP_COMPASS_IIS2MDC_ENABLED 1
+
+
+# =====================================================================================================================
+# LED指示灯与安全开关
+# =====================================================================================================================
+
+# 安全开关与LED
+PD10 LED_SAFETY OUTPUT               # 安全开关LED
+PF5  SAFETY_IN  INPUT PULLDOWN       # 安全开关输入
+
+# RGB三色LED (Pixracer风格)
+PE3 LED_RED   OUTPUT OPENDRAIN GPIO(90) HIGH
+PE4 LED_GREEN OUTPUT OPENDRAIN GPIO(91) HIGH
+PE5 LED_BLUE  OUTPUT OPENDRAIN GPIO(92) HIGH
+
+define AP_NOTIFY_GPIO_LED_RGB_RED_PIN   90
+define AP_NOTIFY_GPIO_LED_RGB_GREEN_PIN 91
+define AP_NOTIFY_GPIO_LED_RGB_BLUE_PIN  92
+define AP_NOTIFY_GPIO_LED_RGB_ENABLED   1
+
+# 硬件版本检测引脚
+PG0  HW_VER_REV_DRIVE OUTPUT LOW
+#PH3 HW_VER_SENS ADC3 SCALE(1)       # 硬件版本检测ADC
+#PH4 HW_REV_SENS ADC3 SCALE(1)       # 硬件修订检测ADC
+
+
+# =====================================================================================================================
+# IMU采样配置
+# =====================================================================================================================
+
+# IMU采样配置
+# 默认只启用第1个IMU的快速采样（通过defaults.parm控制实际使用）
+# 如需启用双IMU，修改defaults.parm中的INS_ENABLE_MASK和INS_FAST_SAMPLE参数
+define HAL_DEFAULT_INS_FAST_SAMPLE 1
+
+
+# =====================================================================================================================
+# 电池监测 (INA226)
+# =====================================================================================================================
+
+# INA226电流传感器配置 (若使用，取消以下注释)
+#define HAL_BATTMON_INA2XX_BUS  1
+#define HAL_BATTMON_INA2XX_ADDR 0
+#define HAL_BATT_MONITOR_DEFAULT 21
+
+
+# =====================================================================================================================
+# DMA配置与文件系统
+# =====================================================================================================================
+
+# DMA通道优先级 (高到低)
+# SDMMC和SPI具有最高优先级以保证IMU数据读取和日志记录性能
+DMA_PRIORITY SDMMC* SPI* UART* USART* TIM*
+
+# 禁止以下外设共享DMA通道 (避免冲突，提高IMU性能)
+#DMA_NOSHARE SPI* TIM5* TIM8*
+
+# 启用FAT文件系统支持
+define HAL_OS_FATFS_IO 1
+
+
+# =====================================================================================================================
+# 引导加载器与构建选项
+# =====================================================================================================================
+
+# IO协处理器固件 (若使用IOMCU，取消以下注释)
+#ROMFS io_firmware.bin       Tools/IO_Firmware/iofirmware_f103_lowpolh.bin
+#ROMFS io_firmware_dshot.bin Tools/IO_Firmware/iofirmware_f103_dshot_lowpolh.bin
+#define HAL_WITH_IO_MCU_BIDIR_DSHOT 1
+
+# 启用DFU引导模式 (设备固件升级)
+ENABLE_DFU_BOOT 1
+
+# 构建ABIN固件格式
+env BUILD_ABIN True
+
+# FRAM参数存储配置
+define HAL_STORAGE_SIZE 32768        # 32KB参数存储空间
+define HAL_WITH_RAMTRON 1            # 使用RAMTRON FRAM
