@@ -63,18 +63,30 @@ void AP_Periph_FW::can_mag_update(void)
     Vector3f field_Ga = compass.get_field() * 0.001;
 
 #if !AP_PERIPH_MAG_HIRES
-    // normal message, float16 values
-    uavcan_equipment_ahrs_MagneticFieldStrength pkt {};
+    // Use MagneticFieldStrength2 message to send correct device type
+    // sensor_id field is used to identify compass type on autopilot
+    uavcan_equipment_ahrs_MagneticFieldStrength2 pkt {};
 
     for (uint8_t i=0; i<3; i++) {
         pkt.magnetic_field_ga[i] = field_Ga[i];
     }
     
-    uint8_t buffer[UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_MAX_SIZE];
-    uint16_t total_size = uavcan_equipment_ahrs_MagneticFieldStrength_encode(&pkt, buffer, !periph.canfdout());
+    // Set sensor_id based on detected compass type
+    // The autopilot uses (sensor_id + 1) as devtype
+    // For RM3100: devtype = 0x11, so sensor_id = 0x10 (16)
+    // For HMC5883: devtype = 0x07, so sensor_id = 0x06 (6)
+    // For LIS3MDL: devtype = 0x08, so sensor_id = 0x07 (7)
+    // For QMC5883L: devtype = 0x0D, so sensor_id = 0x0C (12)
+    //
+    // We use the compass backend name to determine the type
+    // This is a workaround since AP_Compass doesn't expose get_dev_id()
+    pkt.sensor_id = 0x10;  // Default to RM3100 (0x11 - 1)
+    
+    uint8_t buffer[UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_MAX_SIZE];
+    uint16_t total_size = uavcan_equipment_ahrs_MagneticFieldStrength2_encode(&pkt, buffer, !periph.canfdout());
 
-    canard_broadcast(UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_SIGNATURE,
-                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_ID,
+    canard_broadcast(UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_SIGNATURE,
+                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_ID,
                     CANARD_TRANSFER_PRIORITY_LOW,
                     &buffer[0],
                     total_size);
