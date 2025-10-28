@@ -31,7 +31,7 @@ env USE_ALT_RAM_MAP 1             # 使用备用RAM映射
 # =====================================================================================================================
 
 # 串口枚举顺序 (仅启用实际使用的串口)
-SERIAL_ORDER OTG1 UART7 UART5 USART1
+SERIAL_ORDER OTG1 UART7 UART5 UART8
 
 # GPIO默认状态：低电平输出，下拉
 DEFAULTGPIO OUTPUT LOW PULLDOWN
@@ -83,13 +83,10 @@ PC9  UART5_CTS UART5             # 硬件流控CTS
 # GPS接口
 # =====================================================================================================================
 
-# GPS1 (USART1) - GPS使用UART协议
-PB6 USART1_TX USART1
-PB7 USART1_RX USART1
 
-# GPS2 (UART8) - 未使用
-#PE1 UART8_TX UART8
-#PE0 UART8_RX UART8
+# GPS1 (UART8) - 未使用
+PE1 UART8_TX UART8
+PE0 UART8_RX UART8
 
 
 # =====================================================================================================================
