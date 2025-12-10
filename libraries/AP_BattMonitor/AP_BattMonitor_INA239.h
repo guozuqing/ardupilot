@@ -46,9 +46,11 @@ protected:
     } accumulate;
     float current_LSB;
     float voltage_LSB;
+    float current_filtered;  // low-pass filtered current
 
     AP_Float max_amps;
     AP_Float rShunt;
+    AP_Float current_offset;  // current offset for zero calibration (A)
 };
 
 #endif // AP_BATTERY_INA239_ENABLED

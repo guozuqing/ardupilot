@@ -251,8 +251,9 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #endif
 
 #if AP_PERIPH_BATTERY_ENABLED
-    // BATT参数组被隐藏，不在用户界面显示
-    // 但保持功能启用以支持INA239传感器工作
+    // @Group: BATT
+    // @Path: ../libraries/AP_BattMonitor/AP_BattMonitor.cpp
+    GOBJECT(battery_lib, "BATT", AP_BattMonitor),
 #endif
 
 #if AP_PERIPH_MAG_ENABLED

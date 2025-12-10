@@ -23,7 +23,7 @@ extern const AP_HAL::HAL& hal;
 #define REG_ADC_CONFIG_RESET 0xFB68U
 
 #ifndef HAL_BATTMON_INA239_SHUNT_RESISTANCE
-#define HAL_BATTMON_INA239_SHUNT_RESISTANCE 0.0002
+#define HAL_BATTMON_INA239_SHUNT_RESISTANCE 0.0001
 #endif
 
 #ifndef HAL_BATTMON_INA239_MAX_CURRENT
@@ -47,6 +47,14 @@ const AP_Param::GroupInfo AP_BattMonitor_INA239::var_info[] = {
     // @Units: Ohm
     // @User: Advanced
     AP_GROUPINFO("SHUNT", 28, AP_BattMonitor_INA239, rShunt, HAL_BATTMON_INA239_SHUNT_RESISTANCE),
+
+    // @Param: CUR_OFFSET
+    // @DisplayName: Current offset
+    // @Description: Current offset for zero point calibration. Use this to correct zero-point drift. Positive values increase reported current, negative values decrease it.
+    // @Range: -5 5
+    // @Units: A
+    // @User: Advanced
+    AP_GROUPINFO("CUR_OFFSET", 29, AP_BattMonitor_INA239, current_offset, 0),
 
     // CHECK/UPDATE INDEX TABLE IN AP_BattMonitor_Backend.cpp WHEN CHANGING OR ADDING PARAMETERS
 
@@ -87,7 +95,8 @@ void AP_BattMonitor_INA239::configure(void)
 
     voltage_LSB = 3.125e-3;
     current_LSB = max_amps.get() / 0x8000;
-    const int16_t shunt_cal = 819.2 * 1e6 * current_LSB * rShunt.get();
+    // For ADCRANGE=1 (±40.96mV): SHUNT_CAL = 819.2e6 × CURRENT_LSB × R_SHUNT × 4
+    const int16_t shunt_cal = 819.2 * 1e6 * current_LSB * rShunt.get() * 4;
     int16_t shunt_cal2 = 0;
 
     if (!write_word(REG_SHUNT_CAL, shunt_cal) ||
@@ -109,7 +118,19 @@ void AP_BattMonitor_INA239::read(void)
     }
 
     _state.voltage = accumulate.volt_sum / accumulate.count;
-    _state.current_amps = accumulate.current_sum / accumulate.count;
+    
+    // low-pass filter for current: alpha = 0.2 (smaller = smoother, slower response)
+    const float alpha = 0.2f;
+    float current_raw = accumulate.current_sum / accumulate.count;
+    
+    // Apply zero-point offset calibration
+    current_raw -= current_offset.get();
+    
+    current_filtered = current_filtered * (1.0f - alpha) + current_raw * alpha;
+    
+    // Clamp current to minimum of 0A (no negative current)
+    _state.current_amps = MAX(current_filtered, 0.0f);
+    
     accumulate.volt_sum = 0;
     accumulate.current_sum = 0;
     accumulate.count = 0;
@@ -181,7 +202,8 @@ void AP_BattMonitor_INA239::timer(void)
 
     WITH_SEMAPHORE(accumulate.sem);
     accumulate.volt_sum += bus_voltage * voltage_LSB;
-    accumulate.current_sum += current * current_LSB;
+    // ADCRANGE=1 (±40.96mV) current register is half of actual, multiply by 2
+    accumulate.current_sum += current * current_LSB * 4 ;
     accumulate.count++;
 }
 

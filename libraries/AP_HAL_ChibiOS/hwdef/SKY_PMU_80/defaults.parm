@@ -7,6 +7,9 @@ BAT_FULL_VOLTAGE,4200   # 单体电池满电电压 (mV)
 BAT_LOW_VOLTAGE,3500    # 单体电池低电压 (mV)
 BAT_CAPACITY,5000       # 电池容量 (mAh)
 
+# INA239 电流传感器参数
+BATT_CUR_OFFSET,0       # 电流零点偏移校准 (A)
+
 # CAN 网络参数
 CAN_D1_PROTOCOL,1       # CAN1 协议：DroneCAN
 CAN_P1_DRIVER,1         # CAN1 驱动：启用
