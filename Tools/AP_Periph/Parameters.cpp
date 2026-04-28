@@ -294,6 +294,15 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GSCALAR(led_brightness, "LED_BRIGHTNESS", HAL_PERIPH_LED_BRIGHT_DEFAULT),
 #endif
 
+#if AP_PERIPH_NOTIFY_ENABLED || AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
+    // @Param: LED_LIGHT_ID
+    // @DisplayName: LightsCommand light_id filter
+    // @Description: Only aggregate SingleLightCommand entries whose light_id matches this value. -1 accepts all light_ids (default). Set to a specific value (e.g. 246=ANTI_COLLISION, 247=RIGHT_OF_WAY, 248=STROBE, 254=LANDING in PX4) to follow that single light role.
+    // @Range: -1 255
+    // @User: Standard
+    GSCALAR(led_light_id, "LED_LIGHT_ID", -1),
+#endif
+
 #if AP_PERIPH_AIRSPEED_ENABLED
     // Airspeed driver
     // @Group: ARSPD

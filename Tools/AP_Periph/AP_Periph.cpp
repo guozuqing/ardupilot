@@ -84,7 +84,6 @@ const struct LogStructure AP_Periph_FW::log_structure[] = {
 
 void AP_Periph_FW::init()
 {
-    
     // always run with watchdog enabled. This should have already been
     // setup by the bootloader, but if not then enable now
 #ifndef DISABLE_WATCHDOG
@@ -92,6 +91,44 @@ void AP_Periph_FW::init()
 #endif
 
     stm32_watchdog_pat();
+
+#ifdef HAL_PERIPH_LED_BOOT_TEST
+    // boot LED self-test: red, then green, then blue (each ~700ms)
+    // run AFTER watchdog_init+pat so we have a clean watchdog window
+    {
+        const uint8_t on_state = HAL_GPIO_LED_ON;
+        const uint8_t off_state = !HAL_GPIO_LED_ON;
+        auto sleep_ms = [](uint32_t ms) {
+            // pat watchdog FIRST, then sleep in small chunks (sysinterval_t is uint16 ticks)
+            const uint32_t step = 20;
+            stm32_watchdog_pat();
+            while (ms > step) {
+                chThdSleepMilliseconds(step);
+                stm32_watchdog_pat();
+                ms -= step;
+            }
+            if (ms) { chThdSleepMilliseconds(ms); }
+            stm32_watchdog_pat();
+        };
+        // start with all off
+        palWriteLine(HAL_GPIO_PIN_LED_RED,   off_state);
+        palWriteLine(HAL_GPIO_PIN_LED_GREEN, off_state);
+        palWriteLine(HAL_GPIO_PIN_LED_BLUE,  off_state);
+        // red only
+        palWriteLine(HAL_GPIO_PIN_LED_RED,   on_state);
+        sleep_ms(700);
+        palWriteLine(HAL_GPIO_PIN_LED_RED,   off_state);
+        // green only
+        palWriteLine(HAL_GPIO_PIN_LED_GREEN, on_state);
+        sleep_ms(700);
+        palWriteLine(HAL_GPIO_PIN_LED_GREEN, off_state);
+        // blue only
+        palWriteLine(HAL_GPIO_PIN_LED_BLUE,  on_state);
+        sleep_ms(700);
+        palWriteLine(HAL_GPIO_PIN_LED_BLUE,  off_state);
+    }
+    stm32_watchdog_pat();
+#endif
 
 #if !HAL_GCS_ENABLED
     hal.serial(0)->begin(AP_SERIALMANAGER_CONSOLE_BAUD, 32, 32);

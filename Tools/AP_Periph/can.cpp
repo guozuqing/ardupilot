@@ -616,26 +616,37 @@ void AP_Periph_FW::handle_lightscommand(CanardInstance* canard_instance, CanardR
     if (uavcan_equipment_indication_LightsCommand_decode(transfer, &req)) {
         return;
     }
+    // aggregate by channel-wise max so any "on" light turns the LED on
+    // (PX4 sends multiple SingleLightCommand per message; last-wins would
+    //  let a 0,0,0 command such as LANDING-off extinguish the others)
+    uint8_t red = 0, green = 0, blue = 0;
+    const int16_t id_filter = g.led_light_id;
     for (uint8_t i=0; i<req.commands.len; i++) {
-        uavcan_equipment_indication_SingleLightCommand &cmd = req.commands.data[i];
-        // to get the right color proportions we scale the green so that is uses the
-        // same number of bits as red and blue
-        uint8_t red = cmd.color.red<<3U;
-        uint8_t green = (cmd.color.green>>1U)<<3U;
-        uint8_t blue = cmd.color.blue<<3U;
-#if AP_PERIPH_NOTIFY_ENABLED
-        const int8_t brightness = notify.get_rgb_led_brightness_percent();
-#elif AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
-        const int8_t brightness = g.led_brightness;
-#endif
-        if (brightness != 100 && brightness >= 0) {
-            const float scale = brightness * 0.01;
-            red = constrain_int16(red * scale, 0, 255);
-            green = constrain_int16(green * scale, 0, 255);
-            blue = constrain_int16(blue * scale, 0, 255);
+        const uavcan_equipment_indication_SingleLightCommand &cmd = req.commands.data[i];
+        // optional light_id filter (LED_LIGHT_ID: -1 = accept all)
+        if (id_filter >= 0 && cmd.light_id != id_filter) {
+            continue;
         }
-        set_rgb_led(red, green, blue);
+        // RGB565 -> 8-bit scaling (5/6/5 bits -> 8 bits)
+        const uint8_t cr = cmd.color.red  << 3U;
+        const uint8_t cg = (cmd.color.green >> 1U) << 3U;
+        const uint8_t cb = cmd.color.blue << 3U;
+        if (cr > red)   red   = cr;
+        if (cg > green) green = cg;
+        if (cb > blue)  blue  = cb;
     }
+#if AP_PERIPH_NOTIFY_ENABLED
+    const int8_t brightness = notify.get_rgb_led_brightness_percent();
+#elif AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
+    const int8_t brightness = g.led_brightness;
+#endif
+    if (brightness != 100 && brightness >= 0) {
+        const float scale = brightness * 0.01;
+        red   = constrain_int16(red * scale, 0, 255);
+        green = constrain_int16(green * scale, 0, 255);
+        blue  = constrain_int16(blue * scale, 0, 255);
+    }
+    set_rgb_led(red, green, blue);
 }
 #endif // AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
 

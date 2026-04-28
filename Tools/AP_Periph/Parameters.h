@@ -101,6 +101,7 @@ public:
         k_param_imu,
         k_param_dac,
         k_param__gcs,
+        k_param_led_light_id,
     };
 
     AP_Int16 format_version;
@@ -120,6 +121,9 @@ public:
 #endif
 #if AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
     AP_Int8 led_brightness;
+#endif
+#if AP_PERIPH_NOTIFY_ENABLED || AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
+    AP_Int16 led_light_id;
 #endif
 #if AP_PERIPH_BARO_ENABLED
     AP_Int8 baro_enable;
