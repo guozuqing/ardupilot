@@ -197,6 +197,28 @@ void AP_Periph_FW::init()
     hal.rcout->set_serial_led_num_LEDs(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY, HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY, AP_HAL::RCOutput::MODE_NEOPIXEL);
 #endif
 
+#if defined(HAL_PERIPH_BUZZER_SELF_TEST) && (AP_PERIPH_BUZZER_WITHOUT_NOTIFY_ENABLED || AP_PERIPH_NOTIFY_ENABLED)
+    // power-on buzzer self-test (board-gated via HAL_PERIPH_BUZZER_SELF_TEST = tone Hz):
+    // three ascending full-volume beeps ending on the buzzer's resonant frequency for
+    // hardware bring-up. duration_ms is ignored by the PWM path (see ChibiOS
+    // Util::toneAlarm_set_buzzer_tone), so each tone is explicitly silenced.
+    {
+        static const float self_test_scale[] = { 0.7f, 0.85f, 1.0f };
+        const uint32_t tone_ms = 100;
+        const uint32_t gap_ms = 40;
+        hal.rcout->init();
+        hal.util->toneAlarm_init(uint8_t(AP_Notify::BuzzerType::BUILTIN));
+        for (uint8_t i = 0; i < ARRAY_SIZE(self_test_scale); i++) {
+            hal.util->toneAlarm_set_buzzer_tone(HAL_PERIPH_BUZZER_SELF_TEST * self_test_scale[i], 1.0f, tone_ms);
+            hal.scheduler->delay(tone_ms);
+            hal.util->toneAlarm_set_buzzer_tone(0, 0, 0);
+            if (i + 1 < ARRAY_SIZE(self_test_scale)) {
+                hal.scheduler->delay(gap_ms);
+            }
+        }
+    }
+#endif
+
 #if AP_PERIPH_RC_OUT_ENABLED
     rcout_init();
 #endif

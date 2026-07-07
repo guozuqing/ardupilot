@@ -9,7 +9,7 @@
 # MCU类型和具体型号
 MCU STM32F4xx STM32F412Rx
 
-# 晶振频率
+# 时钟源: 外部16MHz无源晶振 (HSE; PLLSRC=HSE -> SYSCLK 100MHz)
 OSCILLATOR_HZ 16000000
 
 # 系统时钟频率设置
@@ -51,9 +51,9 @@ STDOUT_BAUDRATE 57600
 # UART串口顺序
 SERIAL_ORDER
 
-# USART1串口引脚定义
-PB6 USART1_TX USART1
-PB7 USART1_RX USART1
+# USART1串口引脚定义 (迁移至PA9/PA10, 因PB6/PB7改作I2C1)
+PA9  USART1_TX USART1
+PA10 USART1_RX USART1
 
 # USART2串口引脚定义
 PA2 USART2_TX USART2
@@ -70,13 +70,9 @@ define STM32_SERIAL_USE_USART3 FALSE
 # ============================================================================
 # 引导程序特定配置 (Bootloader Specific Configuration)
 # ============================================================================
-# 使用安全按钮保持在引导程序模式（按下为低电平，需要上拉）
-PB3 STAY_IN_BOOTLOADER INPUT PULLUP
-define HAL_STAY_IN_BOOTLOADER_VALUE 0
-
-# 引导程序LED指示灯
+# 引导程序LED指示灯 (PB12, 低电平点亮)
 PB12 LED_BOOTLOADER OUTPUT LOW
-define HAL_LED_ON 1
+define HAL_LED_ON 0
 
 # 使引导程序波特率与调试波特率匹配，便于调试
 define BOOTLOADER_BAUDRATE 57600
@@ -108,12 +104,6 @@ define HAL_CAN_DEFAULT_NODE_ID 0
 # SWD调试接口
 PA13 JTMS-SWDIO SWD
 PA14 JTCK-SWCLK SWD
-
-# ============================================================================
-# SPI片选引脚 (SPI Chip Select Pins)
-# ============================================================================
-# 添加CS引脚确保在引导程序中保持高电平
-PA4 MAG_CS CS
 
 # ============================================================================
 # 系统优化配置 (System Optimization Configuration)

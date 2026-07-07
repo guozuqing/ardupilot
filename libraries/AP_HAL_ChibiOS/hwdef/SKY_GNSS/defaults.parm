@@ -1,8 +1,10 @@
 # ============================================================================
-# Neopixel LED 配置
+# Neopixel LED 配置 (8x WS2812-4020 @ PB0)
+# 本板未启用 Notify / RC_OUT, 因此 OUTx_FUNCTION 与 NTF_* 参数全部无效(会被忽略)。
+# LED 数量由 hwdef 的 HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY(=8) 决定;
+# 亮度由下面的 LED_BRIGHTNESS(0-100) 控制(仅作用于 DroneCAN LightsCommand,
+# 启动彩虹效果亮度在固件中固定)。
 # ============================================================================
-OUT1_FUNCTION 120
-NTF_LED_BRIGHT 2
-NTF_LED_LEN 8
+LED_BRIGHTNESS 100
 
 

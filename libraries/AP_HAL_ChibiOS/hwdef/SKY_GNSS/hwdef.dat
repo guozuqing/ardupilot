@@ -9,7 +9,7 @@
 # MCU类型和具体型号
 MCU STM32F4xx STM32F412Rx
 
-# 晶振频率
+# 时钟源: 外部16MHz无源晶振 (HSE; PLLSRC=HSE -> SYSCLK 100MHz)
 OSCILLATOR_HZ 16000000
 
 # 系统时钟频率设置
@@ -47,15 +47,15 @@ env AP_PERIPH 1
 STDOUT_SERIAL SD1
 STDOUT_BAUDRATE 57600
 
-# UART串口顺序
+# UART串口顺序 (SERIAL0=USART1调试, SERIAL3=USART2 GPS)
 SERIAL_ORDER USART1 EMPTY EMPTY USART2
 
-# USART1用于调试
-PB6 USART1_TX USART1 NODMA
-PB7 USART1_RX USART1 NODMA
+# USART1用于调试 (原PB6/PB7已改作I2C1磁力计, 调试口迁移至PA9/PA10)
+PA9  USART1_TX USART1 NODMA
+PA10 USART1_RX USART1 NODMA
 define DEFAULT_SERIAL0_BAUD 57600
 
-# USART2用于GPS
+# USART2用于GPS (M9n: TX2=PA2, RX2=PA3)
 PA2 USART2_TX USART2 NODMA
 PA3 USART2_RX USART2 NODMA
 
@@ -69,41 +69,33 @@ PA14 JTCK-SWCLK SWD
 # ============================================================================
 # I2C总线配置 (I2C Bus Configuration)
 # ============================================================================
-# 仅配置一个I2C总线
+# I2C1: IIS2MDC磁力计 (SCL=PB6, SDA=PB7)
+PB6 I2C1_SCL I2C1
+PB7 I2C1_SDA I2C1
+
+# I2C3: BMP581气压计 (SCL=PA8, SDA=PB4)
 PB4 I2C3_SDA I2C3
 PA8 I2C3_SCL I2C3
 
-# I2C配置
+# I2C配置 (STM32_I2C_USE_I2Cx 由hwdef脚本按总线占用自动生成)
 define HAL_USE_I2C TRUE
-define STM32_I2C_USE_I2C3 TRUE
 define HAL_I2C_CLEAR_ON_TIMEOUT 0
 define HAL_I2C_INTERNAL_MASK 0
 
-# I2C总线顺序
-I2C_ORDER I2C3
-
-# ============================================================================
-# SPI总线配置 (SPI Bus Configuration)
-# ============================================================================
-# SPI总线引脚配置
-PA5 SPI1_SCK SPI1
-PA6 SPI1_MISO SPI1
-PA7 SPI1_MOSI SPI1
-
-# SPI片选信号
-PA4 MAG_CS CS
-
-# SPI设备配置
-SPIDEV rm3100 SPI1 DEVID1    MAG_CS MODE0  1*MHZ  1*MHZ
+# I2C总线顺序 (索引0=I2C1磁力计, 索引1=I2C3气压计)
+I2C_ORDER I2C1 I2C3
 
 # ============================================================================
 # 传感器配置 (Sensor Configuration)
 # ============================================================================
-# 指南针配置
-COMPASS RM3100 SPI:rm3100 false ROTATION_YAW_180
+# 磁力计: IIS2MDC, 位于I2C1 (总线索引0), 地址0x1E
+# 注意: ROTATION_NONE为占位, 请按实际贴装方向调整(或在飞控端设置罗盘方向)
+COMPASS IIS2MDC I2C:0:0x1E false ROTATION_NONE
+define AP_COMPASS_IIS2MDC_ENABLED 1
 
-# 气压计配置
-BARO ICP201XX I2C:0:0x64
+# 气压计: BMP581, 位于I2C3 (总线索引1), 地址0x46 (SDO接地; 若接VDD改为0x47)
+BARO BMP581 I2C:1:0x47
+define AP_BARO_BMP581_ENABLED 1
 
 # 允许无气压计初始化
 define HAL_BARO_ALLOW_INIT_NO_BARO
@@ -111,21 +103,13 @@ define HAL_BARO_ALLOW_INIT_NO_BARO
 # ============================================================================
 # GPIO和外设引脚配置 (GPIO and Peripheral Pin Configuration)
 # ============================================================================
-# LED闪烁引脚
+# MCU运行指示LED (PB12, 低电平点亮; AP_Periph以1Hz心跳翻转该引脚)
 PB12 LED OUTPUT LOW
 
-# 安全LED，低电平有效
-PB1 SAFE_LED OUTPUT HIGH
-define SAFE_LED_ON 0
-
-# 安全按钮（按下为低电平，需要上拉）
-PB3 SAFE_BUTTON INPUT PULLUP
-define HAL_SAFE_BUTTON_ON 0
-
-# WS2812 LED配置
+# WS2812 RGB LED (8颗 WS2812-4020 菊花链, 数据线=PB0=TIM3_CH3, 经DMA1 Stream2驱动)
 PB0 TIM3_CH3 TIM3 PWM(1)
 
-# PWM输出用于蜂鸣器
+# 蜂鸣器 (MLT-7525无源蜂鸣器, 谐振2700Hz, PB10=TIM2_CH3; 鸣叫频率由飞控经DroneCAN下发)
 PB10 TIM2_CH3 TIM2 GPIO(77) LOW ALARM
 
 # ============================================================================
@@ -134,6 +118,7 @@ PB10 TIM2_CH3 TIM2 GPIO(77) LOW ALARM
 # CAN总线引脚
 PB8 CAN1_RX CAN1
 PB9 CAN1_TX CAN1
+# CAN1_SILENT (PB5): 硬件外部上拉(上电默认静默), 固件驱动为低=正常收发模式
 PB5 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW
 
 # CAN总线节点名称
@@ -171,7 +156,7 @@ define HAL_DEVICE_THREAD_STACK 768
 # 设置较小的参数表
 define AP_PARAM_MAX_EMBEDDED_PARAM 256
 
-# 禁用双GPS和GPS混合以节省闪存空间
+# 仅启用单个磁力计以节省闪存空间
 define HAL_COMPASS_MAX_SENSORS 1
 
 # ============================================================================
@@ -191,7 +176,12 @@ define HAL_PERIPH_GPS_PORT_DEFAULT 3
 # 启用蜂鸣器（不使用通知库）
 define AP_PERIPH_BUZZER_WITHOUT_NOTIFY_ENABLED 1
 
-# 直接控制neopixel LED以实现启动时的'彩虹'效果
+# 上电蜂鸣自检(硬件验证用): 上电时播放3个递升音(0.7x/0.85x/1.0x此频率, 每音~100ms);
+# 注释本行即关闭自检. MLT-7525谐振点约2700Hz, 末音最响; 平时仍由飞控经DroneCAN BeepCommand控制
+define HAL_PERIPH_BUZZER_SELF_TEST 2700
+
+# 直接控制neopixel LED以实现启动时的'彩虹'效果(without-notify路径)
+# 重要: AP_Periph的update_rainbow()硬编码要求COUNT==8才会编译, 否则启动时LED完全不驱动
 define HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY 0
 define HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY 8
 
