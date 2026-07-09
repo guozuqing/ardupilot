@@ -43,10 +43,12 @@ void AP_Periph_FW::can_battery_update(void)
 
         pkt.voltage = battery_lib.voltage(i);
 
+#if !defined(HAL_PERIPH_BATTERY_SKIP_CURRENT)
         float current;
         if (battery_lib.current_amps(current, i)) {
             pkt.current = current;
         }
+#endif // !defined(HAL_PERIPH_BATTERY_SKIP_CURRENT)
         float temperature;
         if (battery_lib.get_temperature(temperature, i)) {
             // Battery lib reports temperature in Celsius.

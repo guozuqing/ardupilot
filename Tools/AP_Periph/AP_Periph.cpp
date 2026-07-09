@@ -416,6 +416,11 @@ void AP_Periph_FW::update()
     node_stats.update();
 #endif
 
+#if AP_PERIPH_SKY_PMU_LED_ENABLED
+    // 自定义 LED 状态指示（每次循环调用，软件 PWM 需要高刷新率）
+    sky_pmu_led_update();
+#endif
+
     static uint32_t last_led_ms;
     uint32_t now = AP_HAL::millis();
     if (now - last_led_ms > 1000) {

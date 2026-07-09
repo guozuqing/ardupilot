@@ -788,7 +788,17 @@ void AP_Periph_FW::onTransferReceived(CanardInstance* canard_instance,
         return;
     }
 
+#if AP_PERIPH_SKY_PMU_LED_ENABLED
+    // 记录最近一次收到 CAN 报文的时间（其他节点的 NodeStatus 心跳至少 1Hz，用于连接状态判断）
+    last_fc_msg_ms = AP_HAL::millis();
+#endif
+
     switch (transfer->data_type_id) {
+#if AP_PERIPH_SKY_PMU_LED_ENABLED
+    case UAVCAN_PROTOCOL_NODESTATUS_ID:
+        // 仅用于刷新连接时间戳（上方已记录），无需解码
+        break;
+#endif
     case UAVCAN_PROTOCOL_GETNODEINFO_ID:
         handle_get_node_info(canard_instance, transfer);
         break;
@@ -930,6 +940,12 @@ bool AP_Periph_FW::shouldAcceptTransfer(const CanardInstance* canard_instance,
     }
 
     switch (data_type_id) {
+#if AP_PERIPH_SKY_PMU_LED_ENABLED
+    case UAVCAN_PROTOCOL_NODESTATUS_ID:
+        // 接收其他节点（飞控）的 NodeStatus 心跳，用于连接状态判断
+        *out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
+        return true;
+#endif
     case UAVCAN_PROTOCOL_GETNODEINFO_ID:
         *out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE;
         return true;

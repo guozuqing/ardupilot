@@ -1,5 +1,5 @@
 # 硬件定义文件，供 chibios_pins.py 使用，适用于 PMU 外设平台
-# 包含 INA239 电流传感器的配置
+# 包含 INA238 电流传感器的配置（I2C 接口，地址 0x40，5mΩ 分流电阻）
 
 # MCU 类别及型号
 MCU STM32L431 STM32L431xx              # 使用 STM32L431 MCU
@@ -21,8 +21,8 @@ APJ_BOARD_ID AP_HW_Sky_PMU
 # 构建为 AP_Periph 固件（非飞控固件）
 env AP_PERIPH 1
 
-# 外部晶振频率为 8MHz
-OSCILLATOR_HZ 8000000
+# 无外部晶振，使用内部 HSI16 振荡器
+OSCILLATOR_HZ 0
 
 # MCU 内部 Flash 容量为 256KB
 FLASH_SIZE_KB 256
@@ -30,44 +30,44 @@ FLASH_SIZE_KB 256
 # 为 CAN 总线驱动预留内存池大小（单位：字节）
 define HAL_CAN_POOL_SIZE 6000
 
-# LED 指示灯配置（PB6，低电平点亮）
-PB6 LED OUTPUT LOW GPIO(1)
+# LED 指示灯配置（PA1 红 / PA2 绿 / PA3 蓝，低电平点亮）
+# 使用自定义 LED 状态逻辑（sky_pmu_led.cpp）：
+#   正常且已连接飞控 -> 蓝灯闪烁（1Hz）
+#   正常但未连接飞控 -> 白灯（红+绿+蓝）闪烁
+#   异常（PG 低电平） -> 红灯快闪
+# 初始电平 HIGH = 上电熄灭
+PA2 LED_GREEN OUTPUT HIGH GPIO(1)
+PA1 LED_RED OUTPUT HIGH GPIO(2)
+PA3 LED_BLUE OUTPUT HIGH GPIO(3)
+define AP_PERIPH_SKY_PMU_LED_ENABLED 1
+# LED 点亮电平（1=高电平点亮，0=低电平点亮）
+define SKY_PMU_LED_ON 0
 
-# 明确禁用串口驱动
-define HAL_USE_SERIAL FALSE
-define AP_HAL_UARTDRIVER_ENABLED 0
+# USART1 调试串口（PB6=TX，PB7=RX）
+SERIAL_ORDER USART1
+PB6 USART1_TX USART1 SPEED_HIGH NODMA
+PB7 USART1_RX USART1 SPEED_HIGH NODMA
+define SERIAL_BUFFERS_SIZE 512
 
-# 无串口配置（不使用UART）
-# STDOUT_SERIAL SD1
-# STDOUT_BAUDRATE 57600
-# SERIAL_ORDER USART1
+# 标准输出串口（调试信息）
+STDOUT_SERIAL SD1
+STDOUT_BAUDRATE 57600
 
-# SPI1 总线配置（用于 INA239 电流传感器）
-PA5 SPI1_SCK SPI1
-PA6 SPI1_MISO SPI1
-PA7 SPI1_MOSI SPI1
-PB0 INA239_CS CS                       # SPI 片选引脚
+# 允许通过串口发送重启命令（方便开发调试）
+define HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT 0
 
-# 定义 SPI 设备：INA239 电流传感器
-SPIDEV INA23X SPI1 DEVID1 INA239_CS MODE1 10*MHZ 10*MHZ
+# I2C1 总线配置（用于 INA238 电流传感器，PA9=SCL，PA10=SDA）
+PA9 I2C1_SCL I2C1
+PA10 I2C1_SDA I2C1
+I2C_ORDER I2C1
+define HAL_I2C_CLEAR_ON_TIMEOUT 0
+define HAL_I2C_INTERNAL_MASK 1          # INA238 为板载器件，I2C1 为内部总线
 
-# 不使用 I2C 接口
-# PB6 I2C1_SCL I2C1
-# PB7 I2C1_SDA I2C1
+# INA238 ALERT 引脚（开漏输出，板上已有 4.7k 上拉）
+PA8 INA_ALERT INPUT FLOATING
 
-# I2C 参数设置（已禁用）
-# define HAL_I2C_CLEAR_ON_TIMEOUT 0
-# define HAL_I2C_INTERNAL_MASK 1
-# I2C_ORDER I2C1
-
-# 不使用串口重启命令（无串口配置）
-# define HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT 0
-
-# 禁用其他不需要的外设
-define HAL_USE_I2C FALSE
-define STM32_I2C_USE_I2C1 FALSE
-define STM32_I2C_USE_I2C2 FALSE
-define STM32_I2C_USE_I2C3 FALSE
+# 电源 PG（Power Good）状态输入
+PB1 PG INPUT PULLUP
 
 # 禁用PWM输出（PMU不需要）
 define HAL_USE_PWM FALSE
@@ -100,9 +100,9 @@ MAIN_STACK 0x300
 # 主线程使用的栈空间大小：2560 字节
 PROCESS_STACK 0xA00
 
-# 启用 CAN1 总线，使用 PB8/PB9
-PB8 CAN1_RX CAN1
-PB9 CAN1_TX CAN1
+# 启用 CAN1 总线，使用 PA11/PA12
+PA11 CAN1_RX CAN1
+PA12 CAN1_TX CAN1
 CAN_ORDER 1
 define CAN_APP_NODE_NAME "org.ardupilot.sky_pmu"
 # 明确禁用 ADC 驱动（PMU不需要ADC）
@@ -121,13 +121,16 @@ define AP_PARAM_MAX_EMBEDDED_PARAM 512
 
 # 保持基本电池监控功能启用 (但隐藏BATT参数)
 define AP_PERIPH_BATTERY_ENABLED 1
-define AP_BATTERY_INA239_ENABLED 1
-define AP_BATTERY_INA239_SPI_DEVICE "INA23X"
-define HAL_BATT_MONITOR_DEFAULT 26
+define AP_BATTERY_INA2XX_ENABLED 1
+define HAL_BATT_MONITOR_DEFAULT 21      # INA2XX (I2C)
+define HAL_BATTMON_INA2XX_BUS 0         # I2C1 -> 总线 0
+define HAL_BATTMON_INA2XX_ADDR 0x40     # INA238 地址（A0/A1 接地）
 define AP_PERIPH_BATTERY_MODEL_NAME "SKY_PMU_80"
 
 # 禁用电池平衡监控功能 (使用自定义BAT参数组替代)
 define AP_PERIPH_BATTERY_BALANCE_ENABLED 0
+# 只发布电压信息，不发布电流信息（BatteryInfo 中电流恒为 0）
+define HAL_PERIPH_BATTERY_SKIP_CURRENT 1
 
 # 自定义BAT参数默认值定义
 define AP_PERIPH_BAT_CELL_NUM_DEFAULT 6                # 电池串数默认值6S
@@ -142,9 +145,9 @@ define AP_BATTERY_OPTIONS_PARAM_ENABLED 1     # 启用电池选项参数
 # 电池参数配置 - 使用正确的宏定义名称
 define AP_BATT_MONITOR_BATTERY_CAPACITY 5000   # 默认电池容量 5000mAh
 
-# INA239传感器默认配置参数
-define HAL_BATTMON_INA239_MAX_CURRENT 90      # 默认最大电流90A
-define HAL_BATTMON_INA239_SHUNT_RESISTANCE 0.0001 # 默认分流电阻0.1mΩ
+# INA238传感器默认配置参数
+define DEFAULT_BATTMON_INA2XX_MAX_AMPS 90     # 默认最大电流90A
+define DEFAULT_BATTMON_INA2XX_SHUNT 0.005     # 分流电阻 5mΩ (R22)
 
 # 禁用 ROMFS 压缩，因为解压需要过多 RAM（STM32L431 RAM 紧张）
 env ROMFS_UNCOMPRESSED True

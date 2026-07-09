@@ -1,6 +1,6 @@
 # 硬件定义文件，用于 chibios_pins.py 处理
 
-# 适用于 Sierra RM3100 和 Airspeed 模块的通用硬件定义
+# SKY PMU（T900_power）Bootloader 硬件定义
 
 # MCU 类别及具体型号
 MCU STM32L431 STM32L431xx   # 使用 STM32L431 微控制器
@@ -18,16 +18,16 @@ APJ_BOARD_ID AP_HW_Sky_PMU
 # 设置为外设固件（AP_Periph）
 env AP_PERIPH 1                        # 表示这是一个 AP_Periph 固件，而不是飞控固件
 
-# 外部晶振频率
-OSCILLATOR_HZ 16000000                 # 外部晶振为 16MHz
+# 无外部晶振，使用内部 HSI16 振荡器
+OSCILLATOR_HZ 0
 
 # Flash 总容量
 FLASH_SIZE_KB 256                      # 芯片内置 256KB 的 Flash
 
-# Bootloader 中的故障指示 LED
-PB6 LED_BOOTLOADER OUTPUT LOW          # 使用 PB6 作为 LED，初始为低电平（Amber LED）
+# Bootloader 中的状态指示 LED（蓝色 LED，PA3，低电平点亮）
+PA3 LED_BOOTLOADER OUTPUT HIGH
 
-define HAL_LED_ON 1                    # LED 点亮为高电平
+define HAL_LED_ON 0                    # LED 点亮为低电平
 
 # 串口输出配置
 STDOUT_SERIAL SD1                      # 使用 SD1 作为标准输出串口（对应 USART1）
@@ -36,9 +36,9 @@ STDOUT_BAUDRATE 57600                 # 波特率为 57600，便于调试
 # 串口配置顺序
 SERIAL_ORDER USART1                    # 仅使用 USART1
 
-# USART1 引脚定义
-PA9  USART1_TX USART1 SPEED_HIGH NODMA  # PA9 为 TX 引脚，高速，无 DMA
-PA10 USART1_RX USART1 SPEED_HIGH NODMA  # PA10 为 RX 引脚，高速，无 DMA
+# USART1 引脚定义（PB6=TX，PB7=RX）
+PB6 USART1_TX USART1 SPEED_HIGH NODMA   # PB6 为 TX 引脚，高速，无 DMA
+PB7 USART1_RX USART1 SPEED_HIGH NODMA   # PB7 为 RX 引脚，高速，无 DMA
 
 # 启用串口功能
 define HAL_USE_SERIAL TRUE
@@ -60,8 +60,8 @@ MAIN_STACK 0x800                       # 主栈大小为 2KB
 PROCESS_STACK 0x800                   # 进程栈大小为 2KB
 
 # 启用 CAN 总线（适用于 UAVCAN 或 DroneCAN）
-PB8  CAN1_RX CAN1                      # PB8 为 CAN1 接收
-PB9  CAN1_TX CAN1                      # PB9 为 CAN1 发送
+PA11 CAN1_RX CAN1                      # PA11 为 CAN1 接收
+PA12 CAN1_TX CAN1                      # PA12 为 CAN1 发送
 define CAN_APP_NODE_NAME "org.ardupilot.sky_pmu"
 CAN_ORDER 1                            # 设置为第一个 CAN 设备
 
@@ -75,5 +75,4 @@ define BOOTLOADER_BAUDRATE 57600
 # Bootloader 启动超时时间（毫秒）
 define HAL_BOOTLOADER_TIMEOUT 1000     # Bootloader 等待 1000ms 后自动跳转应用
 
-# 添加 SPI 芯片选择引脚，Bootloader 中需拉高，防止外设误动作
-PB0 MAG_CS CS                         # PB0 为INA239的 CS 引脚（Chip Select）
+# INA238 使用 I2C 接口，Bootloader 无需额外的 SPI 片选引脚

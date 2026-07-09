@@ -104,6 +104,11 @@
 #define HAL_PERIPH_CAN_MIRROR 0
 #endif
 
+// SKY PMU 自定义 LED 状态指示（由 hwdef 定义启用）
+#ifndef AP_PERIPH_SKY_PMU_LED_ENABLED
+#define AP_PERIPH_SKY_PMU_LED_ENABLED 0
+#endif
+
 #if defined(HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT) && !defined(HAL_DEBUG_BUILD) && !defined(HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_NON_DEBUG)
 /* this checking for reboot can lose bytes on GPS modules and other
  * serial devices. It is really only relevent on a debug build if you
@@ -386,6 +391,13 @@ public:
 
 // 自定义BAT参数组 (始终启用)
 BATParams bat_params;
+
+#if AP_PERIPH_SKY_PMU_LED_ENABLED
+    // 自定义 LED 状态指示逻辑
+    void sky_pmu_led_update(void);
+    // 最近一次收到 CAN 报文的时间（用于判断飞控连接状态）
+    uint32_t last_fc_msg_ms;
+#endif
 
 #if AP_PERIPH_SERIAL_OPTIONS_ENABLED
     SerialOptions serial_options;
