@@ -64,62 +64,138 @@ BATParams::BATParams(void)
     AP_Param::setup_object_defaults(this, var_info);
 }
 
-// 通过电压计算电量百分比 (精确的锂电池SOC算法)
+// SoC 估算行为常数
+static constexpr float SOC_VOLT_FILT_TAU = 4.0f;   // 电压低通滤波时间常数（s）
+static constexpr float SOC_RISE_RATE     = 2.0f;   // SoC 上升限速（%/s，抑制回跳）
+static constexpr float SOC_FALL_RATE     = 5.0f;   // SoC 下降限速（%/s，平滑阶跃）
+static constexpr float SOC_REPORT_HYST   = 0.6f;   // 整数上报滞回（%，防止相邻百分比跳动）
+
+// 上电稳定期判据：INA238 刚配置完成、首次转换未结束时寄存器可能读到 0/偏低电压，
+// 若直接用其落位，SoC 会被种在低值后受上升限速拖累，表现为"电量从低慢慢变高"
+static constexpr float SOC_MIN_CELL_VOLT   = 2.5f;  // 单体电压低于此值视为采样无效（V）
+static constexpr float SOC_SETTLE_BAND     = 0.02f; // 相邻采样单体电压差阈值（V）
+static constexpr uint8_t SOC_SETTLE_COUNT  = 5;     // 需连续稳定的采样个数（10Hz 下约 0.5s）
+static constexpr float SOC_FAST_WINDOW_S   = 10.0f; // 落位后的快速收敛窗口（s）
+static constexpr float SOC_FAST_RATE       = 20.0f; // 快速收敛窗口内的限速（%/s）
+
+// 通过电压计算电量百分比：锂电池典型 OCV 放电曲线插值
+// 本板只给飞控供电，负载电流小且恒定，端电压≈开路电压，电压法 SoC 可信
 float BATParams::calculate_soc_from_voltage(float voltage) const
 {
     if (cell_num <= 0) {
         return 0.0f;
     }
-    
+
     // 计算单体电池电压
-    float cell_voltage = voltage / cell_num;
-    
-    // 转换为V
-    float full_v = full_voltage / 1000.0f; // 满电电压
-    float low_v = low_voltage / 1000.0f;   // 低电压
-    
-    // 边界检查
-    if (cell_voltage >= full_v) {
-        return 100.0f;
+    const float cell_voltage = voltage / cell_num;
+
+    // 参数为 mV，转换为 V
+    const float full_v = full_voltage / 1000.0f; // 满电电压（SoC=100% 锚点）
+    const float low_v  = low_voltage / 1000.0f;  // 低电压（SoC=0% 锚点）
+    const float span   = full_v - low_v;
+
+    if (span < 0.05f) {
+        // 参数配置异常，退化为阈值判断
+        return (cell_voltage >= full_v) ? 100.0f : 0.0f;
     }
-    if (cell_voltage <= low_v) {
+
+    // 归一化电压：0 = BAT_LOW_VOLTAGE，1 = BAT_FULL_VOLTAGE
+    const float x = (cell_voltage - low_v) / span;
+
+    // 典型锂电池静态放电曲线，按 [低电压, 满电电压] 区间归一化
+    // 注释中的绝对电压对应默认参数 3.500V ~ 4.200V
+    struct CurvePoint { float x; float soc; };
+    static const CurvePoint curve[] = {
+        {0.000f,   0.0f},   // 3.500V
+        {0.157f,   5.0f},   // 3.610V
+        {0.271f,  10.0f},   // 3.690V
+        {0.329f,  20.0f},   // 3.730V
+        {0.386f,  30.0f},   // 3.770V
+        {0.429f,  40.0f},   // 3.800V
+        {0.486f,  50.0f},   // 3.840V
+        {0.529f,  60.0f},   // 3.870V
+        {0.643f,  70.0f},   // 3.950V
+        {0.743f,  80.0f},   // 4.020V
+        {0.871f,  90.0f},   // 4.110V
+        {0.929f,  95.0f},   // 4.150V
+        {1.000f, 100.0f},   // 4.200V
+    };
+    const uint8_t n = ARRAY_SIZE(curve);
+
+    if (x <= curve[0].x) {
         return 0.0f;
     }
-    
-    // 基于实际锂电池放电曲线的精确SOC计算
-    // 使用更准确的电压-SOC对应关系
-    float soc;
-    
-    // 锂电池标准电压点 (基于实测数据)
-    float v_95 = full_v - 0.02f;  // 95%: ~4.18V
-    float v_80 = full_v - 0.15f;  // 80%: ~4.05V  
-    float v_60 = full_v - 0.25f;  // 60%: ~3.95V
-    float v_40 = full_v - 0.35f;  // 40%: ~3.85V
-    float v_20 = full_v - 0.50f;  // 20%: ~3.70V
-    float v_10 = full_v - 0.60f;  // 10%: ~3.60V
-    
-    if (cell_voltage >= v_95) {
-        // 95%-100%: 满电段
-        soc = 95.0f + (cell_voltage - v_95) / (full_v - v_95) * 5.0f;
-    } else if (cell_voltage >= v_80) {
-        // 80%-95%: 高电量段
-        soc = 80.0f + (cell_voltage - v_80) / (v_95 - v_80) * 15.0f;
-    } else if (cell_voltage >= v_60) {
-        // 60%-80%: 中高电量段
-        soc = 60.0f + (cell_voltage - v_60) / (v_80 - v_60) * 20.0f;
-    } else if (cell_voltage >= v_40) {
-        // 40%-60%: 中等电量段
-        soc = 40.0f + (cell_voltage - v_40) / (v_60 - v_40) * 20.0f;
-    } else if (cell_voltage >= v_20) {
-        // 20%-40%: 中低电量段
-        soc = 20.0f + (cell_voltage - v_20) / (v_40 - v_20) * 20.0f;
-    } else if (cell_voltage >= v_10) {
-        // 10%-20%: 低电量段
-        soc = 10.0f + (cell_voltage - v_10) / (v_20 - v_10) * 10.0f;
-    } else {
-        // 0%-10%: 极低电量段
-        soc = (cell_voltage - low_v) / (v_10 - low_v) * 10.0f;
+    if (x >= curve[n - 1].x) {
+        return 100.0f;
     }
-    
-    return constrain_float(soc, 0.0f, 100.0f);
+
+    // 分段线性插值
+    for (uint8_t k = 1; k < n; k++) {
+        if (x < curve[k].x) {
+            const float f = (x - curve[k - 1].x) / (curve[k].x - curve[k - 1].x);
+            return curve[k - 1].soc + f * (curve[k].soc - curve[k - 1].soc);
+        }
+    }
+    return 100.0f;
+}
+
+// 发布链路的 SoC 更新：稳定期判据 + 滤波 + 曲线映射 + 限速 + 上报滞回
+bool BATParams::update_soc(float voltage, float dt, uint8_t instance, float &soc_pct)
+{
+    if (instance >= SOC_MAX_INSTANCES) {
+        // 超出状态槽位时退化为无状态曲线映射
+        soc_pct = calculate_soc_from_voltage(voltage);
+        return true;
+    }
+    SocState &s = _soc_state[instance];
+
+    if (!s.initialised) {
+        // 上电稳定期：要求电压合理且连续 SOC_SETTLE_COUNT 个采样保持稳定后才落位，
+        // 避免用 INA238 上电初期的 0/偏低读数为 SoC 播种
+        const float cells = (cell_num > 0) ? (float)cell_num : 1.0f;
+        const bool plausible = (voltage > SOC_MIN_CELL_VOLT * cells);
+        const bool stable = (fabsf(voltage - s.v_last) < SOC_SETTLE_BAND * cells);
+        s.v_last = voltage;
+
+        if (!plausible || !stable) {
+            s.settle_count = 0;
+            return false;
+        }
+        if (++s.settle_count < SOC_SETTLE_COUNT) {
+            return false;
+        }
+
+        // 稳定后直接落位，立即显示真实电量
+        s.v_filt = voltage;
+        s.soc = calculate_soc_from_voltage(voltage);
+        s.soc_reported = roundf(s.soc);
+        s.run_s = 0.0f;
+        s.initialised = true;
+        soc_pct = s.soc_reported;
+        return true;
+    }
+
+    dt = constrain_float(dt, 0.0f, 1.0f);
+    if (s.run_s < SOC_FAST_WINDOW_S) {
+        s.run_s += dt;
+    }
+
+    // 电压一阶低通滤波，抑制采样噪声
+    const float alpha = dt / (SOC_VOLT_FILT_TAU + dt);
+    s.v_filt += (voltage - s.v_filt) * alpha;
+
+    // OCV 曲线映射 + 输出变化限速（上升慢、下降稍快）；
+    // 落位后的短暂窗口内放宽限速，快速修正可能残留的落位偏差
+    const float soc_target = calculate_soc_from_voltage(s.v_filt);
+    const bool fast = (s.run_s < SOC_FAST_WINDOW_S);
+    const float rise = (fast ? SOC_FAST_RATE : SOC_RISE_RATE) * dt;
+    const float fall = (fast ? SOC_FAST_RATE : SOC_FALL_RATE) * dt;
+    s.soc += constrain_float(soc_target - s.soc, -fall, rise);
+
+    // 整数上报滞回：变化超过阈值才更新对外百分比
+    if (fabsf(s.soc - s.soc_reported) > SOC_REPORT_HYST) {
+        s.soc_reported = roundf(s.soc);
+    }
+    soc_pct = s.soc_reported;
+    return true;
 }

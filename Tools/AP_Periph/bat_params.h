@@ -39,13 +39,31 @@ public:
     uint16_t get_capacity()     const { return capacity; }
 
     // 通过“总电压（包电压，单位：V）”估算 SoC（0–100%）
-    // 计算思路通常为：
+    // 计算思路：
     //   v_cell = V_pack / cell_num
-    //   在 [low_voltage, full_voltage] 区间线性/分段映射到 [0, 100]，并钳制
-    // 可按需加入内阻补偿：v_cell_corr = v_cell + I * R_internal / cell_num
+    //   在 [low_voltage, full_voltage] 区间按锂电池典型 OCV 放电曲线插值到 [0, 100]，并钳制
     float calculate_soc_from_voltage(float voltage) const;
 
+    // 发布链路调用的 SoC 更新入口（约 10Hz）：
+    //   上电稳定期判据 -> 电压一阶低通滤波 -> OCV 曲线映射 -> 输出变化限速 -> 整数上报滞回
+    // 返回 true 时 soc_pct 为可直接填入 state_of_charge_pct 的百分比（0–100）；
+    // 返回 false 表示上电初期电压采样尚未稳定（INA238 首次转换可能读到 0/偏低），
+    // 此时不应发布该电池的 BatteryInfo
+    bool update_soc(float voltage, float dt, uint8_t instance, float &soc_pct);
+
 private:
+    // ===== 电压法 SoC 估算的运行状态（按电池实例区分） =====
+    static constexpr uint8_t SOC_MAX_INSTANCES = 2;
+    struct SocState {
+        float v_filt;        // 低通滤波后的包电压（V）
+        float v_last;        // 上一次采样电压（稳定期判据用）
+        float soc;           // 连续 SoC 估计（%）
+        float soc_reported;  // 最近一次上报的整数百分比
+        float run_s;         // 落位后的运行时间（s，用于快速收敛窗口）
+        uint8_t settle_count; // 连续稳定采样计数
+        bool  initialised;   // 稳定落位后置位
+    } _soc_state[SOC_MAX_INSTANCES];
+
     // ===== 与 AP_Param 绑定的参数成员 =====
     // 注意：成员的“类型”决定了参数的存储/序列化方式。
 

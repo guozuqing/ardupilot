@@ -131,6 +131,8 @@ define AP_PERIPH_BATTERY_MODEL_NAME "SKY_PMU_80"
 define AP_PERIPH_BATTERY_BALANCE_ENABLED 0
 # 只发布电压信息，不发布电流信息（BatteryInfo 中电流恒为 0）
 define HAL_PERIPH_BATTERY_SKIP_CURRENT 1
+# 电量百分比改用 BAT_ 参数组的电压法 SoC（本板只给飞控供电，容量积分恒显 99%）
+define AP_PERIPH_BATTERY_VOLTAGE_SOC_ENABLED 1
 
 # 自定义BAT参数默认值定义
 define AP_PERIPH_BAT_CELL_NUM_DEFAULT 6                # 电池串数默认值6S

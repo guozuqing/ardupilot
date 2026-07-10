@@ -14,6 +14,12 @@ extern const AP_HAL::HAL &hal;
 #define AP_PERIPH_BATTERY_MODEL_NAME CAN_APP_NODE_NAME
 #endif
 
+// 电压法 SoC：仅在 hwdef 中显式启用的板卡（如 T900_power）使用，
+// 其余板卡保持上游的容量积分行为
+#ifndef AP_PERIPH_BATTERY_VOLTAGE_SOC_ENABLED
+#define AP_PERIPH_BATTERY_VOLTAGE_SOC_ENABLED 0
+#endif
+
 /*
   update CAN battery monitor
  */
@@ -23,6 +29,10 @@ void AP_Periph_FW::can_battery_update(void)
     if (now_ms - battery.last_can_send_ms < 100) {
         return;
     }
+#if AP_PERIPH_BATTERY_VOLTAGE_SOC_ENABLED
+    // 供电压法 SoC 滤波使用的时间步长（首次调用时由 update_soc 内部直接落位）
+    const float dt = (now_ms - battery.last_can_send_ms) * 0.001f;
+#endif
     battery.last_can_send_ms = now_ms;
 
     const uint8_t battery_instances = battery_lib.num_instances();
@@ -63,10 +73,35 @@ void AP_Periph_FW::can_battery_update(void)
             pkt.state_of_health_pct = state_of_health_pct;
         }
 
+#if AP_PERIPH_BATTERY_VOLTAGE_SOC_ENABLED
+        // 本板只给飞控供电，电流积分几乎不消耗容量（恒显 99%），
+        // 改用 BAT_ 参数组的电压法 SoC 估算电量百分比
+        if (bat_params.get_cell_num() > 0) {
+            float soc_pct;
+            if (!bat_params.update_soc(pkt.voltage, dt, i, soc_pct)) {
+                // 上电初期电压采样尚未稳定，暂不发布，避免飞控显示偏低电量
+                continue;
+            }
+            pkt.state_of_charge_pct = (uint8_t)soc_pct;
+
+            // 依据 BAT_CAPACITY / BAT_CELL_NUM 折算容量（Wh），供飞控/地面站显示
+            const float full_wh = bat_params.get_capacity() * 0.001f * bat_params.get_cell_num() * 3.7f;
+            pkt.full_charge_capacity_wh = full_wh;
+            pkt.remaining_capacity_wh = full_wh * pkt.state_of_charge_pct * 0.01f;
+
+        } else {
+            // BAT_CELL_NUM 配置异常时回退到容量积分
+            uint8_t percentage = 0;
+            if (battery_lib.capacity_remaining_pct(percentage, i)) {
+                pkt.state_of_charge_pct = percentage;
+            }
+        }
+#else
         uint8_t percentage = 0;
         if (battery_lib.capacity_remaining_pct(percentage, i)) {
             pkt.state_of_charge_pct = percentage;
         }
+#endif // AP_PERIPH_BATTERY_VOLTAGE_SOC_ENABLED
         pkt.model_instance_id = i+1;
 
 #if !defined(HAL_PERIPH_BATTERY_SKIP_NAME)
@@ -106,7 +141,7 @@ void AP_Periph_FW::can_battery_send_cells(uint8_t instance)
         return;
     }
     const auto &cell_voltages = battery_lib.get_cell_voltages(instance);
-			
+
     for (uint8_t i = 0; i < ARRAY_SIZE(cell_voltages.cells); i++) {
         if (cell_voltages.cells[i] == 0xFFFFU) {
             break;
@@ -114,7 +149,7 @@ void AP_Periph_FW::can_battery_send_cells(uint8_t instance)
         pkt->voltage_cell.data[i] = cell_voltages.cells[i]*0.001;
         pkt->voltage_cell.len = i+1;
     }
-			
+
     pkt->max_current = nanf("");
     pkt->nominal_voltage = nanf("");
 
