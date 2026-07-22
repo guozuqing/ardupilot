@@ -396,8 +396,19 @@ public:
 #endif
 #endif
 
-#if AP_PERIPH_NOTIFY_ENABLED || defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY)
+#if (AP_PERIPH_NOTIFY_ENABLED || defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY)) && !defined(HAL_PERIPH_STARTUP_SHOW)
     void update_rainbow();
+#endif
+#if defined(HAL_PERIPH_STARTUP_SHOW) && defined(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY) && defined(HAL_PERIPH_BUZZER_SELF_TEST)
+#define AP_PERIPH_STARTUP_SHOW_ENABLED 1
+#else
+#define AP_PERIPH_STARTUP_SHOW_ENABLED 0
+#endif
+#if AP_PERIPH_STARTUP_SHOW_ENABLED
+    void update_startup_show();
+    // true once the power-on LED show has finished and DroneCAN
+    // LightsCommand is allowed to take over the LEDs
+    bool startup_show_done;
 #endif
 #if AP_PERIPH_NOTIFY_ENABLED
     // notification object for LEDs, buzzers etc

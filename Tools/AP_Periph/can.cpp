@@ -612,6 +612,13 @@ void AP_Periph_FW::set_rgb_led(uint8_t red, uint8_t green, uint8_t blue)
  */
 void AP_Periph_FW::handle_lightscommand(CanardInstance* canard_instance, CanardRxTransfer* transfer)
 {
+#if AP_PERIPH_STARTUP_SHOW_ENABLED
+    if (!startup_show_done) {
+        // the power-on LED show owns the LEDs until it has finished,
+        // otherwise the FC's ~20Hz all-LED writes tear the pattern apart
+        return;
+    }
+#endif
     uavcan_equipment_indication_LightsCommand req;
     if (uavcan_equipment_indication_LightsCommand_decode(transfer, &req)) {
         return;

@@ -197,11 +197,13 @@ void AP_Periph_FW::init()
     hal.rcout->set_serial_led_num_LEDs(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY, HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY, AP_HAL::RCOutput::MODE_NEOPIXEL);
 #endif
 
-#if defined(HAL_PERIPH_BUZZER_SELF_TEST) && (AP_PERIPH_BUZZER_WITHOUT_NOTIFY_ENABLED || AP_PERIPH_NOTIFY_ENABLED)
+#if defined(HAL_PERIPH_BUZZER_SELF_TEST) && (AP_PERIPH_BUZZER_WITHOUT_NOTIFY_ENABLED || AP_PERIPH_NOTIFY_ENABLED) && !defined(HAL_PERIPH_STARTUP_SHOW)
     // power-on buzzer self-test (board-gated via HAL_PERIPH_BUZZER_SELF_TEST = tone Hz):
     // three ascending full-volume beeps ending on the buzzer's resonant frequency for
     // hardware bring-up. duration_ms is ignored by the PWM path (see ChibiOS
     // Util::toneAlarm_set_buzzer_tone), so each tone is explicitly silenced.
+    // with HAL_PERIPH_STARTUP_SHOW the buzzer is instead driven from
+    // update_startup_show() alongside the LEDs.
     {
         static const float self_test_scale[] = { 0.7f, 0.85f, 1.0f };
         const uint32_t tone_ms = 100;
@@ -340,7 +342,86 @@ void AP_Periph_FW::init()
     start_ms = AP_HAL::millis();
 }
 
-#if (defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY) && HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY == 8) || AP_PERIPH_NOTIFY_ENABLED
+#if AP_PERIPH_STARTUP_SHOW_ENABLED
+/*
+  startup show, replaces the rainbow: the neopixels light up solid blue
+  one-by-one while a short rising major-arpeggio chime plays (final note held
+  on the buzzer's resonant frequency, HAL_PERIPH_BUZZER_SELF_TEST Hz), hold
+  briefly, then all off. runs non-blocking from update() as the LED thread
+  only outputs once the system is fully initialised. while the show runs,
+  DroneCAN LightsCommand is ignored (see handle_lightscommand) so the FC
+  cannot overwrite the pattern.
+ */
+void AP_Periph_FW::update_startup_show()
+{
+    if (startup_show_done) {
+        return;
+    }
+    constexpr uint8_t nleds = HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY;
+    constexpr uint32_t step_ms = 150;   // per-LED fill rate
+    constexpr uint32_t hold_ms = 300;   // all-blue hold before going dark
+    constexpr uint32_t fill_total_ms = nleds * step_ms;
+    constexpr uint32_t total_ms = fill_total_ms + hold_ms;
+
+    // rising major-chord arpeggio (do-mi-sol-do), scaled so the held final
+    // note lands on the buzzer's resonant frequency
+    struct Note { uint16_t start_ms; uint16_t len_ms; float scale; };
+    static const Note chime[] = {
+        {   0,  90, 0.5f   },
+        { 110,  90, 0.625f },
+        { 220,  90, 0.75f  },
+        { 330, 250, 1.0f   },
+    };
+
+    static bool buzzer_ready;
+    if (!buzzer_ready) {
+        buzzer_ready = true;
+        hal.util->toneAlarm_init(uint8_t(AP_Notify::BuzzerType::BUILTIN));
+    }
+
+    const uint32_t elapsed = AP_HAL::millis() - start_ms;
+    static uint8_t last_frame = 0xFF;
+    uint16_t freq = 0;
+
+    if (elapsed >= total_ms) {
+        // all off; only release the LEDs to DroneCAN control once the
+        // final frame really went out
+        if (hal.rcout->set_serial_led_rgb_data(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY, -1, 0, 0, 0) &&
+            hal.rcout->serial_led_send(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY)) {
+            startup_show_done = true;
+        }
+    } else if (elapsed < fill_total_ms) {
+        // fill phase: LEDs turn solid blue one-by-one. frame counter only
+        // advances once the data was accepted and queued for output
+        const uint8_t n = elapsed / step_ms;
+        if (n != last_frame) {
+            bool ok = true;
+            for (uint8_t i = 0; i <= n; i++) {
+                ok &= hal.rcout->set_serial_led_rgb_data(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY, i, 0, 0, 200);
+            }
+            if (ok && hal.rcout->serial_led_send(HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY)) {
+                last_frame = n;
+            }
+        }
+    }
+    // else: all-blue hold, nothing to update
+
+    for (const auto &note : chime) {
+        if (elapsed >= note.start_ms && elapsed < uint32_t(note.start_ms) + note.len_ms) {
+            freq = HAL_PERIPH_BUZZER_SELF_TEST * note.scale;
+            break;
+        }
+    }
+
+    static uint16_t last_freq;
+    if (freq != last_freq) {
+        last_freq = freq;
+        hal.util->toneAlarm_set_buzzer_tone(freq, freq > 0 ? 1.0f : 0.0f, 0);
+    }
+}
+#endif // AP_PERIPH_STARTUP_SHOW_ENABLED
+
+#if ((defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY) && HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY == 8) || AP_PERIPH_NOTIFY_ENABLED) && !defined(HAL_PERIPH_STARTUP_SHOW)
 /*
   rotating rainbow pattern on startup
  */
@@ -569,7 +650,9 @@ void AP_Periph_FW::update()
     networking_periph.update();
 #endif
 
-#if (defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY) && HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY == 8) || AP_PERIPH_NOTIFY_ENABLED
+#if AP_PERIPH_STARTUP_SHOW_ENABLED
+    update_startup_show();
+#elif ((defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY) && HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY == 8) || AP_PERIPH_NOTIFY_ENABLED) && !defined(HAL_PERIPH_STARTUP_SHOW)
     update_rainbow();
 #endif
 #if AP_PERIPH_ADSB_ENABLED

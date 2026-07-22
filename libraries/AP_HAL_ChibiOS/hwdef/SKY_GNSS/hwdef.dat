@@ -176,12 +176,17 @@ define HAL_PERIPH_GPS_PORT_DEFAULT 3
 # 启用蜂鸣器（不使用通知库）
 define AP_PERIPH_BUZZER_WITHOUT_NOTIFY_ENABLED 1
 
-# 上电蜂鸣自检(硬件验证用): 上电时播放3个递升音(0.7x/0.85x/1.0x此频率, 每音~100ms);
-# 注释本行即关闭自检. MLT-7525谐振点约2700Hz, 末音最响; 平时仍由飞控经DroneCAN BeepCommand控制
+# 上电开机秀: 8颗RGB逐一蓝色点亮(每颗150ms), 同时播放一段递升大三和弦琶音
+# (do-mi-sol-do, 末音为此谐振频率并延长), 全蓝保持300ms后全灭, 总时长约1.5秒;
+# 注释HAL_PERIPH_BUZZER_SELF_TEST即整体关闭(音效+灯效). MLT-7525谐振点约2700Hz;
+# 灯效结束后LED由飞控经DroneCAN LightsCommand接管(蓝闪=GPS未定位, 绿闪=已定位)
 define HAL_PERIPH_BUZZER_SELF_TEST 2700
 
-# 直接控制neopixel LED以实现启动时的'彩虹'效果(without-notify路径)
-# 重要: AP_Periph的update_rainbow()硬编码要求COUNT==8才会编译, 否则启动时LED完全不驱动
+# 启用开机秀'蓝色逐一点亮+琶音'(见update_startup_show), 同时编译移除默认的启动彩虹效果;
+# 注释本行则恢复update_rainbow()彩虹效果(该函数硬编码要求COUNT==8才会编译)
+define HAL_PERIPH_STARTUP_SHOW 1
+
+# 直接控制neopixel LED(without-notify路径), 8颗WS2812-4020菊花链
 define HAL_PERIPH_NEOPIXEL_CHAN_WITHOUT_NOTIFY 0
 define HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY 8
 
