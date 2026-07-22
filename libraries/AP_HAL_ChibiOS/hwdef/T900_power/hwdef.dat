@@ -43,6 +43,10 @@ define AP_PERIPH_SKY_PMU_LED_ENABLED 1
 # LED 点亮电平（1=高电平点亮，0=低电平点亮）
 define SKY_PMU_LED_ON 0
 
+# MP9931 降压芯片使能脚（PA6，高电平使能）
+# 上电保持低电平（关闭），MCU 启动并自检正常后由代码拉高（sky_pmu_led.cpp）
+PA6 MP9931_EN OUTPUT LOW GPIO(4)
+
 # USART1 调试串口（PB6=TX，PB7=RX）
 SERIAL_ORDER USART1
 PB6 USART1_TX USART1 SPEED_HIGH NODMA

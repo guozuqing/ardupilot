@@ -27,6 +27,9 @@ FLASH_SIZE_KB 256                      # 芯片内置 256KB 的 Flash
 # Bootloader 中的状态指示 LED（蓝色 LED，PA3，低电平点亮）
 PA3 LED_BOOTLOADER OUTPUT HIGH
 
+# MP9931 降压芯片使能脚：Bootloader 阶段保持低电平（关闭），由应用固件自检后使能
+PA6 MP9931_EN OUTPUT LOW
+
 define HAL_LED_ON 0                    # LED 点亮为低电平
 
 # 串口输出配置

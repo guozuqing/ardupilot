@@ -20,6 +20,18 @@
 #define AP_PERIPH_BAT_CAPACITY_DEFAULT 5000
 #endif
 
+#ifndef AP_PERIPH_BAT_OV_VOLT_DEFAULT
+#define AP_PERIPH_BAT_OV_VOLT_DEFAULT 60
+#endif
+
+#ifndef AP_PERIPH_BAT_MAX_POWER_DEFAULT
+#define AP_PERIPH_BAT_MAX_POWER_DEFAULT 30
+#endif
+
+#ifndef AP_PERIPH_BAT_SC_POWER_DEFAULT
+#define AP_PERIPH_BAT_SC_POWER_DEFAULT 100
+#endif
+
 const AP_Param::GroupInfo BATParams::var_info[] = {
     // @Param: _CELL_NUM
     // @DisplayName: Number of battery cells
@@ -55,6 +67,33 @@ const AP_Param::GroupInfo BATParams::var_info[] = {
     // @Increment: 100
     // @User: Standard
     AP_GROUPINFO("_CAPACITY", 4, BATParams, capacity, AP_PERIPH_BAT_CAPACITY_DEFAULT),
+
+    // @Param: _OV_VOLT
+    // @DisplayName: Over voltage protection threshold
+    // @Description: Bus voltage above this triggers red LED fast blink and CAN warning. 0 disables the check
+    // @Units: V
+    // @Range: 0 100
+    // @Increment: 0.5
+    // @User: Standard
+    AP_GROUPINFO("_OV_VOLT", 5, BATParams, ov_volt, AP_PERIPH_BAT_OV_VOLT_DEFAULT),
+
+    // @Param: _MAX_POWER
+    // @DisplayName: FC supply max power
+    // @Description: FC supply branch power (VxI from INA238) above this triggers red LED fast blink and CAN warning. 0 disables the check
+    // @Units: W
+    // @Range: 0 500
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("_MAX_POWER", 6, BATParams, max_power, AP_PERIPH_BAT_MAX_POWER_DEFAULT),
+
+    // @Param: _SC_POWER
+    // @DisplayName: Short circuit cutoff power
+    // @Description: FC supply branch power above this cuts off the MP9931 buck converter output (latched until reboot) and sends an error to the GCS. 0 disables the check
+    // @Units: W
+    // @Range: 0 500
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("_SC_POWER", 7, BATParams, sc_power, AP_PERIPH_BAT_SC_POWER_DEFAULT),
 
     AP_GROUPEND
 };

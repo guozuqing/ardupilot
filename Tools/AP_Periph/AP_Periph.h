@@ -395,8 +395,19 @@ BATParams bat_params;
 #if AP_PERIPH_SKY_PMU_LED_ENABLED
     // 自定义 LED 状态指示逻辑
     void sky_pmu_led_update(void);
+    // 安全保护：过压/过功率监测（返回是否存在故障，维护 CAN 告警与节点健康状态）
+    bool sky_pmu_protection_update(uint32_t now_ms, bool pg_fault);
+    // 设置 NodeStatus 健康状态（实现在 can.cpp，true=WARNING，false=OK）
+    void set_node_health_warning(bool warn);
     // 最近一次收到 CAN 报文的时间（用于判断飞控连接状态）
     uint32_t last_fc_msg_ms;
+#ifdef HAL_GPIO_PIN_MP9931_EN
+    // MP9931 降压芯片使能逻辑（启动自检通过后拉高 PA6）
+    void sky_pmu_power_update(void);
+    bool mp9931_enabled;
+    // 短路保护已切断并锁存（只能重新上电恢复）
+    bool mp9931_cut;
+#endif
 #endif
 
 #if AP_PERIPH_SERIAL_OPTIONS_ENABLED

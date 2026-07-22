@@ -29,6 +29,9 @@
 | `BAT_FULL_VOLTAGE` | 单体满电电压（mV），SOC=100% 的曲线锚点 | 3000 ~ 5000，步进 10 | 4200 |
 | `BAT_LOW_VOLTAGE` | 单体低电压（mV），SOC=0% 的曲线锚点 | 2500 ~ 4000，步进 10 | 3500 |
 | `BAT_CAPACITY` | 电池标称容量（mAh），用于折算 BatteryInfo 的 Wh 容量字段 | 100 ~ 50000，步进 100 | 5000 |
+| `BAT_OV_VOLT` | 过压保护阈值（V）：母线电压超过后红灯快闪 + CAN 告警（去抖 100ms，恢复滞回 2V） | 0 = 禁用；0 ~ 100V，步进 0.5 | 60 |
+| `BAT_MAX_POWER` | 飞控供电最大功率（W）：INA238 支路 V×I 超过后红灯快闪 + CAN 告警（去抖 500ms，恢复滞回 90%；电机电流不经过本支路） | 0 = 禁用；0 ~ 500W，步进 1 | 30 |
+| `BAT_SC_POWER` | 短路保护切断阈值（W）：支路功率超过后**切断 MP9931 输出并锁存**（去抖 100ms，只能重新上电恢复）+ ERROR 级告警 | 0 = 禁用；0 ~ 500W，步进 1（测试可临时设 35） | 100 |
 
 ---
 
@@ -114,11 +117,24 @@
 | `uavcan.protocol.RestartNode` | 5 | 远程重启节点 |
 | `uavcan.protocol.file.BeginFirmwareUpdate` | 40 | 启动 CAN 固件升级（升级过程中以客户端身份发送 `file.Read`（48）请求拉取固件数据） |
 
+### 安全保护告警（LogMessage，ID 16383）
+
+任一故障：红灯 5Hz 快闪 + `NodeStatus.health` 置 WARNING（恢复后回 OK）；
+进入故障立即发告警，持续期间每 5s 重发，恢复时发 cleared。
+过压/过功率/PG 仅告警不切电；**短路保护会切断 MP9931 输出并锁存（只能重新上电恢复）**。
+
+| 故障 | 触发 | 动作 | 告警文本 |
+|---|---|---|---|
+| 过压 | V > `BAT_OV_VOLT` 持续 100ms | 告警 | `SKY_PMU: OVERVOLT xx.xV > xx.xV` |
+| 过功率 | V×I > `BAT_MAX_POWER` 持续 500ms | 告警 | `SKY_PMU: OVERPOWER xx.xW > xx.xW` |
+| 短路 | V×I > `BAT_SC_POWER` 持续 100ms | **切断 MP9931 + 锁存** | 触发：`SKY_PMU: SHORT xxW>yyW cut`（ERROR 级）；锁存期间每 5s：`SKY_PMU: MP9931 off (short latched)` |
+| PG 异常 | PB1 低电平持续 50ms | 告警 | `SKY_PMU: PG fault` |
+
 ### 调试 / 可选发送
 
 | 消息类型 | 消息 ID | 触发条件 | 内容 |
 |---|---|---|---|
-| `uavcan.protocol.debug.LogMessage` | 16383 | 有调试输出时 | `can_printf` 文本（内部错误 IERR、栈使用情况等） |
+| `uavcan.protocol.debug.LogMessage` | 16383 | 有调试输出时 | `can_printf` 文本（内部错误 IERR、栈使用情况、MP9931 使能状态等） |
 | `dronecan.protocol.Stats` / `CanStats` | 342 / 343 | `DEBUG` bit2 置位时随心跳发送 | CAN 收发/错误统计 |
 
 ### 接收的报文（供参考）

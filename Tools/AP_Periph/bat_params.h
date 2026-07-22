@@ -38,6 +38,15 @@ public:
     // 典型：5000（=5Ah）、10000（=10Ah）
     uint16_t get_capacity()     const { return capacity; }
 
+    // 过压保护阈值（单位：V，母线总电压），0 = 禁用该保护
+    float get_ov_volt()         const { return ov_volt; }
+
+    // 飞控供电最大功率（单位：W，INA238 支路 V×I），0 = 禁用该保护
+    float get_max_power()       const { return max_power; }
+
+    // 短路保护功率阈值（单位：W）：超过后切断 MP9931 并锁存，0 = 禁用
+    float get_sc_power()        const { return sc_power; }
+
     // 通过“总电压（包电压，单位：V）”估算 SoC（0–100%）
     // 计算思路：
     //   v_cell = V_pack / cell_num
@@ -78,4 +87,10 @@ private:
 
     AP_Int16 capacity;      // 额定容量（mAh）；典型 5000/10000
                             // 若需要 >32Ah，可改为 AP_Int32
+
+    AP_Float ov_volt;       // 过压保护阈值（V），默认 60；0 = 禁用
+
+    AP_Float max_power;     // 飞控供电最大功率（W），默认 30；0 = 禁用
+
+    AP_Float sc_power;      // 短路保护切断阈值（W），默认 100；0 = 禁用
 };

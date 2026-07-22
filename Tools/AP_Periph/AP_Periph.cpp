@@ -419,6 +419,10 @@ void AP_Periph_FW::update()
 #if AP_PERIPH_SKY_PMU_LED_ENABLED
     // 自定义 LED 状态指示（每次循环调用，软件 PWM 需要高刷新率）
     sky_pmu_led_update();
+#ifdef HAL_GPIO_PIN_MP9931_EN
+    // 启动自检通过后使能 MP9931 降压芯片
+    sky_pmu_power_update();
+#endif
 #endif
 
     static uint32_t last_led_ms;

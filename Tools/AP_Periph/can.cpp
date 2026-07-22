@@ -1395,6 +1395,13 @@ uint16_t AP_Periph_FW::pool_peak_percent()
     return peak_percent;
 }
 
+// 设置 NodeStatus 健康状态（安全保护告警用，true=WARNING，false=OK）
+void AP_Periph_FW::set_node_health_warning(bool warn)
+{
+    node_status.health = warn ? UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING
+                              : UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
+}
+
 void AP_Periph_FW::node_status_send(void)
 {
     {
