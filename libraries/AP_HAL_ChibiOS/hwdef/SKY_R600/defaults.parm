@@ -1,0 +1,2 @@
+# UM982C: 10Hz position/velocity/heading updates (AGRICA/UNIHEADINGA/GNGGA/GNRMC)
+GPS1_RATE_MS 100

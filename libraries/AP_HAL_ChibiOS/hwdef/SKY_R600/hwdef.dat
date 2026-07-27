@@ -32,13 +32,21 @@ FLASH_SIZE_KB 512  # 假设闪存大小为512KB
 # order of UARTs
 SERIAL_ORDER EMPTY USART2  
 
-# a LED to flash
-PB0 LED OUTPUT LOW  # 设置PB0为LED输出引脚，初始为低电平
+# a LED to flash (SYS_STAT)
+PB12 LED OUTPUT LOW  # 状态灯SYS_STAT在PB12，初始为低电平
 
 
-# USART2 for GPS
-PA2 USART2_TX USART2  # 设置PA2为USART2的TX引脚
-PA3 USART2_RX USART2  # 设置PA3为USART2的RX引脚
+# USART2 for GPS (接UM982C的COM2)
+PA2 USART2_TX USART2  # PA2 -> RTK_RXD2 (UM982C COM2)
+PA3 USART2_RX USART2  # PA3 <- RTK_TXD2 (UM982C COM2)
+
+# UM982C RESET_N (低有效，保持高电平使模块正常运行)
+PA4 RTK_NRST OUTPUT HIGH
+
+# I2C3 for BMP581 baro (SCL=PA8, SDA=PB4)
+I2C_ORDER I2C3
+PA8 I2C3_SCL I2C3  # 设置PA8为I2C3时钟线
+PB4 I2C3_SDA I2C3  # 设置PB4为I2C3数据线
 
 
 
@@ -62,6 +70,8 @@ define DMA_RESERVE_SIZE 0  # 不保留DMA空间
 # enable CAN support
 PB8 CAN1_RX CAN1  # 设置PB8为CAN1的RX引脚
 PB9 CAN1_TX CAN1  # 设置PB9为CAN1的TX引脚
+# CAN收发器静默脚，拉低使能收发
+PB7 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW
 define CAN_APP_NODE_NAME "org.ardupilot.sky_rtk"
 
 
@@ -78,19 +88,34 @@ define AP_PARAM_MAX_EMBEDDED_PARAM 256  # 设置最大嵌入式参数数量为25
 define GPS_MAX_RECEIVERS 1  # 设置最大GPS接收器数量为1
 define GPS_MAX_INSTANCES 1  # 设置最大GPS实例数量为1
 
-define HAL_PERIPH_ENABLE_GPS  # 启用GPS外设
-define GPS_MOVING_BASELINE 1  # 启用GPS动态基准
+define AP_PERIPH_GPS_ENABLED 1  # 启用GPS外设
+define HAL_PERIPH_GPS_PORT_DEFAULT 1  # GPS使用串口1(USART2)
+define GPS_MOVING_BASELINE 1  # 启用GPS动态基准(双天线定向)
+
+# BMP581 barometer on I2C3
+define AP_PERIPH_BARO_ENABLED 1  # 启用气压计外设
+define AP_BARO_BACKEND_DEFAULT_ENABLED 0  # 只编译BMP581驱动，节省flash
+define AP_BARO_BMP581_ENABLED 1  # 启用BMP581驱动
+BARO BMP581 I2C:0:0x46  # BMP581主地址(SDO拉低)
+BARO BMP581 I2C:0:0x47  # BMP581备用地址(SDO拉高)
+define HAL_BARO_ALLOW_INIT_NO_BARO  # 气压计探测失败时不阻塞GPS节点启动
 
 
 
 define AP_GPS_BACKEND_DEFAULT_ENABLED 0  # 默认禁用GPS后端
 define AP_GPS_NMEA_ENABLED 1  # 启用NMEA协议
-define AP_GPS_NMEA_UNICORE_ENABLED 1  # 启用NMEA单核心支持
+define AP_GPS_NMEA_UNICORE_ENABLED 1  # 启用NMEA和芯星通(Unicore)扩展(AGRICA/UNIHEADINGA)
 
-define HAL_GPS1_TYPE_DEFAULT 25  # 设置默认GPS类型为25
+# 只保留NMEA/Unicore驱动，禁用AP_Periph默认附带的其他GPS后端
+define AP_GPS_UBLOX_ENABLED 0
+define AP_GPS_GSOF_ENABLED 0
+define AP_GPS_SBF_ENABLED 0
+define AP_GPS_NOVA_ENABLED 0
 
-# custom config once sensor is found
-define AP_GPS_NMEA_CUSTOM_CONFIG_STRING "CONFIG COM1 230400 8 N 1"  # 定义GPS配置字符串
+define HAL_GPS1_TYPE_DEFAULT 25  # 25=Unicore移动基线NMEA(双天线定向,输出AGRICA+UNIHEADINGA)
 
-# custom config for GPS probe
-define NMEA_UNICORE_SETUP "CONFIG COM1 230400 8 n 1\r\nGPGGA 0.2\r\n"  # GPS探针的自定义配置
+# custom config once sensor is found (MCU接在UM982C的COM2)
+define AP_GPS_NMEA_CUSTOM_CONFIG_STRING "CONFIG COM2 230400 8 N 1"  # 定义GPS配置字符串
+
+# custom config for GPS probe (MCU接在UM982C的COM2)
+define NMEA_UNICORE_SETUP "CONFIG COM2 230400 8 n 1\r\nGPGGA 0.2\r\n"  # GPS探针的自定义配置
